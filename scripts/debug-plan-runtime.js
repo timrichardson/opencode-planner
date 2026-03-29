@@ -41,9 +41,11 @@ const tools = plan.tools ?? {}
 const prompt = plan.prompt ?? ""
 
 const planPromptAllowed = hasAllowedPermission("plan_prompt", permissions)
+const editPlanAllowed = hasAllowedPermission("edit_plan", permissions)
 const planExitAllowed = hasAllowedPermission("plan_exit", permissions)
 const submitPlanAllowed = hasAllowedPermission("submit_plan", permissions)
 const planPromptTool = Boolean(tools.plan_prompt)
+const editPlanTool = Boolean(tools.edit_plan)
 const planExitTool = Boolean(tools.plan_exit)
 const submitPlanTool = Boolean(tools.submit_plan)
 const usingLocalPlugin = plugins.includes(localPlugin)
@@ -54,6 +56,8 @@ console.log("")
 line("Repo plugin loaded", usingLocalPlugin ? "yes" : "no")
 line("plan_prompt allowed", planPromptAllowed ? "yes" : "no")
 line("plan_prompt tool", planPromptTool ? "yes" : "no")
+line("edit_plan allowed", editPlanAllowed ? "yes" : "no")
+line("edit_plan tool", editPlanTool ? "yes" : "no")
 line("submit_plan allowed", submitPlanAllowed ? "yes" : "no")
 line("plan_exit allowed", planExitAllowed ? "yes" : "no")
 line("submit_plan tool", submitPlanTool ? "yes" : "no")
@@ -76,6 +80,9 @@ if (!usingLocalPlugin) {
 }
 if (!planPromptTool) {
   console.log("- plan_prompt is not registered as a runtime tool.")
+}
+if (!editPlanTool) {
+  console.log("- edit_plan is not registered as a runtime tool.")
 }
 if (!submitPlanTool) {
   console.log("- submit_plan is not registered as a runtime tool.")

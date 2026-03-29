@@ -1,7 +1,7 @@
 # opencode-planner
 
 `opencode-planner` is an OpenCode plugin that adds a dedicated `plan` agent for read-only planning before implementation. It's based on the experimental plan agent. That is, it likes to use sub-agents and a structured approach to planning.
-It asks clarifying questions, and produces a markdown file. When Plannotator is installed, it can submit the finished plan for richer review. Without Plannotator, it falls back to a normal chat-based review handoff.
+It asks clarifying questions, and produces a markdown file. When Plannotator is installed, it can submit the finished plan for richer review. Without Plannotator, it can open the plan in your configured external editor for review.
 
 After review, the agent can hand back to implementation mode by calling `plan_exit` only when the host runtime exposes that tool. In current OpenCode builds, that means experimental plan mode must be enabled and the client must be `cli`. If it's not enabled, you need to prompt the build agent to start work.
 
@@ -36,9 +36,10 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - injects a system reminder that keeps the planning workflow explicit
 - lets users replace the plugin's base `plan` prompt with their own `agent.plan.prompt`
 - lets users override agent settings such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`
-- denies `submit_plan` and `plan_exit` to the built-in `general` and `explore` subagents so review and implementation handoff stay on the primary `plan` agent
+- denies `submit_plan`, `edit_plan`, and `plan_exit` to the built-in `general` and `explore` subagents so review and implementation handoff stay on the primary `plan` agent
 - exposes a `plan_prompt` tool so the `plan` agent can reveal the plugin's prompt basis for customization
-- uses `submit_plan` for review when available, otherwise falls back to manual chat review
+- exposes an `edit_plan` tool so the `plan` agent can open the current plan in the configured external editor
+- uses `submit_plan` for review when available, otherwise falls back to external-editor review
 - can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime
 
 ## Customize the plan agent
@@ -75,6 +76,37 @@ The tool returns:
 - the injected planner reminder, which is plugin-controlled runtime guidance and is not customized via `agent.plan.prompt`
 - a short note explaining that the final runtime prompt can still differ because of user config, other plugins, or runtime tool availability like `plan_exit`
 
+## Review Without Plannotator
+
+If `submit_plan` is not registered by the runtime, the plugin's `edit_plan` tool gives the `plan` agent a fallback way to open the current plan in your configured external editor.
+
+Example:
+
+```text
+If submit_plan is unavailable, call edit_plan so I can review the plan in my editor.
+```
+
+`edit_plan` uses `VISUAL` first, then `EDITOR`. The command must launch a separate process and block until editing is complete.
+
+Compatible examples:
+
+- `VISUAL="gvim -f"`
+- `EDITOR="gedit --wait"`
+- `EDITOR="kate --block"`
+- `EDITOR="code --wait"`
+
+These work because they open a separate editor process and do not try to take over the OpenCode TUI terminal.
+
+Bare terminal editors like `vim` or `nvim` are not sufficient on their own because the plugin does not hand the current TUI terminal over to the editor. If you want to use them, wrap them in a terminal-emulator command that opens a new window and waits for it to exit.
+
+Examples:
+
+- `EDITOR="gnome-terminal --wait -- nvim"`
+- `EDITOR="kitty --wait nvim"`
+- a small wrapper script for your terminal emulator that launches `vim` or `nvim` in a separate window and blocks until it exits
+
+If `edit_plan` fails, the `plan` agent should fall back to telling you the plan file path and asking for review in chat.
+
 ## Auto-updates
 
 OpenCode installs and updates npm plugins automatically. During the beta phase of this plugin, `opencode-planner@beta` gives the smoothest update path for most users.
@@ -95,7 +127,7 @@ npm run debug:plan
 npm run opencode:no-plannotator -- debug config
 ```
 
-`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `plan_prompt`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
+`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `plan_prompt`, `edit_plan`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
 
 This is the fastest way to distinguish:
 

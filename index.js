@@ -1,4 +1,7 @@
+import { spawn } from "node:child_process"
+import { readFile } from "node:fs/promises"
 import path from "path"
+import process from "node:process"
 
 const agent = "plan"
 const root = ".opencode/plans"
@@ -22,7 +25,7 @@ function file(id) {
 function reviewInstruction(target) {
   return [
     `When the plan is complete, if the submit_plan tool is available, use it to submit the plan for review.`,
-    `Otherwise, tell the user the plan is ready at ${target} and ask for review in chat.`,
+    `Otherwise, call edit_plan to open the markdown plan in the configured external editor for review. If edit_plan fails, tell the user the plan is ready at ${target} and ask for review in chat.`,
   ].join(" ")
 }
 
@@ -122,10 +125,74 @@ function restrictPlannerSubagent(input = {}) {
   return {
     ...input,
     permission: merge(input?.permission, {
+      edit_plan: "deny",
       plan_exit: "deny",
       submit_plan: "deny",
     }),
   }
+}
+
+function editorCommand() {
+  return process.env.VISUAL?.trim() || process.env.EDITOR?.trim() || ""
+}
+
+function runEditor(target) {
+  const editor = editorCommand()
+  if (!editor) {
+    throw new Error(
+      "Neither `VISUAL` nor `EDITOR` is set, so edit_plan cannot open the plan. Configure a blocking editor command such as `code --wait`, or a terminal launcher that opens your editor in a separate window and waits.",
+    )
+  }
+
+  const shell = process.env.SHELL ?? "sh"
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(shell, ["-lc", `${editor} "$1"`, "opencode-editor", target], {
+      stdio: ["ignore", "ignore", "pipe"],
+      env: process.env,
+    })
+
+    let stderr = ""
+    child.stderr?.on("data", (chunk) => {
+      stderr += chunk.toString()
+    })
+
+    child.on("error", reject)
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve()
+        return
+      }
+
+      const detail = stderr.trim()
+      const suffix = detail ? `: ${detail}` : ""
+      reject(
+        new Error(
+          `The external editor command exited with status ${code}${suffix}. Configure VISUAL or EDITOR to launch a separate process that waits until editing is complete.`,
+        ),
+      )
+    })
+  })
+}
+
+async function editPlan(sessionID) {
+  const target = file(sessionID ?? "<session-id>")
+  await runEditor(target)
+
+  let content = ""
+
+  try {
+    content = await readFile(target, "utf8")
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      throw new Error(`The plan file \`${target}\` does not exist yet. Finish writing the plan first.`)
+    }
+
+    throw error
+  }
+
+  const rendered = content.trim() ? content : `The plan file \`${target}\` is empty.`
+  return [`The plan was edited in your external editor.`, `File: ${target}`, "", rendered].join("\n")
 }
 
 function mode(input = {}) {
@@ -154,6 +221,7 @@ function mode(input = {}) {
       websearch: "allow",
       codesearch: "allow",
       batch: "allow",
+      edit_plan: "allow",
       plan_prompt: "allow",
       submit_plan: "allow",
       ...(hasPlanExit() ? { plan_exit: "allow" } : {}),
@@ -189,6 +257,13 @@ export default async function plannerPlugin() {
         args: {},
         async execute(_, context) {
           return promptDisclosure(context.sessionID ? file(context.sessionID) : defaultPlanTarget)
+        },
+      },
+      edit_plan: {
+        description: "Open the current plan in the configured external editor",
+        args: {},
+        async execute(_, context) {
+          return editPlan(context.sessionID)
         },
       },
     },

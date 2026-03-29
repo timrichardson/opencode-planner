@@ -1,5 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import { mkdir, rm, writeFile } from "node:fs/promises"
 
 import plannerPlugin from "../index.js"
 
@@ -25,6 +26,17 @@ async function withEnv(env, fn) {
   }
 }
 
+async function withPlanFile(filePath, content, fn) {
+  await mkdir(new URL("../.opencode/plans/", import.meta.url), { recursive: true })
+  await writeFile(new URL(`../${filePath}`, import.meta.url), content)
+
+  try {
+    await fn()
+  } finally {
+    await rm(new URL(`../${filePath}`, import.meta.url), { force: true })
+  }
+}
+
 test("config hook registers the plan agent without plan_exit by default", async () => {
   await withEnv(
     {
@@ -40,10 +52,12 @@ test("config hook registers the plan agent without plan_exit by default", async 
 
       assert.equal(cfg.agent.plan.mode, "primary")
       assert.equal(cfg.agent.plan.permission.bash, "deny")
+      assert.equal(cfg.agent.plan.permission.edit_plan, "allow")
       assert.equal(cfg.agent.plan.permission.plan_prompt, "allow")
       assert.equal(cfg.agent.plan.permission.submit_plan, "allow")
       assert.equal(cfg.agent.plan.permission.plan_exit, undefined)
       assert.match(cfg.agent.plan.prompt, /if the submit_plan tool is available/i)
+      assert.match(cfg.agent.plan.prompt, /call edit_plan to open the markdown plan/i)
       assert.match(cfg.agent.plan.prompt, /ask for review in chat/i)
       assert.doesNotMatch(cfg.agent.plan.prompt, /plan_exit/)
     },
@@ -100,7 +114,7 @@ test("config hook enables plan_exit when experimental plan mode is active", asyn
   )
 })
 
-test("config hook denies submit_plan and plan_exit for planner subagents", async () => {
+test("config hook denies review handoff tools for planner subagents", async () => {
   await withEnv(
     {
       OPENCODE_EXPERIMENTAL: undefined,
@@ -113,6 +127,7 @@ test("config hook denies submit_plan and plan_exit for planner subagents", async
         agent: {
           general: {
             permission: {
+              edit_plan: "allow",
               plan_exit: "allow",
               submit_plan: "allow",
               webfetch: "deny",
@@ -120,6 +135,7 @@ test("config hook denies submit_plan and plan_exit for planner subagents", async
           },
           explore: {
             permission: {
+              edit_plan: "allow",
               plan_exit: "allow",
               submit_plan: "allow",
             },
@@ -129,11 +145,61 @@ test("config hook denies submit_plan and plan_exit for planner subagents", async
 
       await plugin.config(cfg)
 
+      assert.equal(cfg.agent.general.permission.edit_plan, "deny")
       assert.equal(cfg.agent.general.permission.plan_exit, "deny")
       assert.equal(cfg.agent.general.permission.submit_plan, "deny")
       assert.equal(cfg.agent.general.permission.webfetch, "deny")
+      assert.equal(cfg.agent.explore.permission.edit_plan, "deny")
       assert.equal(cfg.agent.explore.permission.plan_exit, "deny")
       assert.equal(cfg.agent.explore.permission.submit_plan, "deny")
+    },
+  )
+})
+
+test("edit_plan opens the current session plan in the configured editor", async () => {
+  await withEnv(
+    {
+      VISUAL: "true",
+      EDITOR: "false",
+    },
+    async () => {
+      await withPlanFile(
+        ".opencode/plans/ses_edit.md",
+        "# Edited plan\n\n- reviewed\n",
+        async () => {
+          const plugin = await plannerPlugin()
+          const output = await plugin.tool.edit_plan.execute(
+            {},
+            {
+              sessionID: "ses_edit",
+            },
+          )
+
+          assert.match(output, /edited in your external editor/i)
+          assert.match(output, /# Edited plan/)
+        },
+      )
+    },
+  )
+})
+
+test("edit_plan reports when no blocking editor command is configured", async () => {
+  await withEnv(
+    {
+      VISUAL: undefined,
+      EDITOR: undefined,
+    },
+    async () => {
+      const plugin = await plannerPlugin()
+      await assert.rejects(
+        plugin.tool.edit_plan.execute(
+          {},
+          {
+            sessionID: "ses_edit",
+          },
+        ),
+        /Neither `VISUAL` nor `EDITOR` is set/i,
+      )
     },
   )
 })
@@ -166,6 +232,7 @@ test("chat.message injects a planner reminder part", async () => {
       assert.match(output.parts[0].id, /^prt_/)
       assert.match(output.parts[0].text, /Planner mode is active\./)
       assert.match(output.parts[0].text, /if the submit_plan tool is available/i)
+      assert.match(output.parts[0].text, /call edit_plan to open the markdown plan/i)
       assert.match(output.parts[0].text, /ask for review in chat/i)
       assert.match(output.parts[0].text, /plan_exit/)
     },
@@ -204,6 +271,7 @@ test("system transform only applies after planner messages", async () => {
 
       assert.equal(system.system.length, 1)
       assert.match(system.system[0], /if the submit_plan tool is available/i)
+      assert.match(system.system[0], /call edit_plan to open the markdown plan/i)
       assert.match(system.system[0], /ask for review in chat/i)
       assert.match(system.system[0], /plan_exit/)
     },
@@ -231,6 +299,7 @@ test("plan_prompt tool returns the plugin prompt basis without plan_exit by defa
       assert.match(output, /## Planner reminder/)
       assert.match(output, /injected by the plugin at runtime/i)
       assert.match(output, /not customized through `agent\.plan\.prompt`/i)
+      assert.match(output, /call edit_plan to open the markdown plan/i)
       assert.match(output, /```json/)
       assert.match(output, /"agent": \{/)
       assert.match(output, /\.opencode\/plans\/ses_tool\.md/)
