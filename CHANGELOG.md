@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1-beta.5
+
+- gate `plan_exit` instructions on the OpenCode experimental plan-mode runtime flags
+- fall back to manual chat review when `submit_plan` is unavailable
+- add runtime debug and sandbox helpers for faster planner testing
+
 ## 0.1.1-beta.4
 
 - publish README updates describing the planning workflow and plannotator integration
