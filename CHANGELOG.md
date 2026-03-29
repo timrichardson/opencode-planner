@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1-beta.4
+
+- publish README updates describing the planning workflow and plannotator integration
+
 ## 0.1.1-beta.3
 
 - restore GitHub release permissions in the release workflow
