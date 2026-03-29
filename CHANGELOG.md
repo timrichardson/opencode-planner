@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1-beta.8
+
+- document `agent.plan.model` customization with OpenAI `reasoningEffort` examples
+- fix README customization docs to match the current prompt-appending behavior
+
 ## 0.1.1-beta.7
 
 - replace `softprops/action-gh-release@v2` with `gh release create` in the release workflow
