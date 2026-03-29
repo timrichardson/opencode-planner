@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1-beta.9
+
+- fix README documentation for `agent.plan.prompt` replacement behavior
+- restore `plan_prompt` tool documentation and note the build-agent fallback when `plan_exit` is unavailable
+
 ## 0.1.1-beta.8
 
 - document `agent.plan.model` customization with OpenAI `reasoningEffort` examples

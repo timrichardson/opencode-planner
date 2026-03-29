@@ -29,7 +29,7 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 }
 ```
 
-You can also customize the `plan` agent in the same config. The plugin keeps its default planner prompt and appends your custom prompt, so this is a good place to add repo-specific planning rules or a dedicated model with a specific reasoning level:
+You can also customize the `plan` agent in the same config. If you set `agent.plan.prompt`, it replaces the plugin's base planning prompt, so this is a good place to add repo-specific planning rules or a dedicated model with a specific reasoning level:
 
 ```json
 {
@@ -44,21 +44,22 @@ You can also customize the `plan` agent in the same config. The plugin keeps its
 }
 ```
 
-This extends the built-in planning instructions rather than replacing them.
+This replaces the plugin's base planning prompt. The plugin still injects a separate runtime planner reminder to keep the agent in planning mode.
 
 ## What it does
 
 - adds a `plan` agent intended for design and implementation planning
 - constrains that agent to read-only tools plus markdown plan editing
 - injects a system reminder that keeps the planning workflow explicit
-- lets users extend the plugin's base `plan` prompt with their own `agent.plan.prompt`
+- lets users replace the plugin's base `plan` prompt with their own `agent.plan.prompt`
 - lets users override agent settings such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`
+- exposes a `plan_prompt` tool so the `plan` agent can reveal the plugin's prompt basis for customization
 - uses `submit_plan` for review when available, otherwise falls back to manual chat review
 - can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime
 
 ## Customize the plan agent
 
-If you set `agent.plan.prompt`, the plugin appends your text after its built-in planning instructions. Other agent settings, such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`, are merged in normally.
+If you set `agent.plan.prompt`, the plugin replaces its built-in base planning prompt with your text. Other agent settings, such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`, are merged in normally.
 
 ```json
 { 
@@ -73,6 +74,22 @@ If you set `agent.plan.prompt`, the plugin appends your text after its built-in 
 ```
 
 The runtime planner reminder still applies, so the agent stays in planner mode and continues to use the review handoff flow. That reminder is injected by the plugin at runtime and is not customized through `agent.plan.prompt`.
+
+## Reveal the plugin prompt basis
+
+The plugin also adds a read-only `plan_prompt` tool. Ask the `plan` agent to use it when you want the plugin's own prompt text and planner reminder as a starting point for customization.
+
+Example:
+
+```text
+Use the plan_prompt tool and show me the plugin prompt so I can customize it.
+```
+
+The tool returns:
+
+- the plugin base prompt
+- the injected planner reminder, which is plugin-controlled runtime guidance and is not customized via `agent.plan.prompt`
+- a short note explaining that the final runtime prompt can still differ because of user config, other plugins, or runtime tool availability like `plan_exit`
 
 ## Auto-updates
 
@@ -94,7 +111,7 @@ npm run debug:plan
 npm run opencode:no-plannotator -- debug config
 ```
 
-`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `submit_plan` and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
+`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `plan_prompt`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
 
 This is the fastest way to distinguish:
 
