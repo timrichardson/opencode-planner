@@ -45,7 +45,21 @@ jobs:
             exit 1
           fi
       - run: npm publish --access public --tag "${{ steps.meta.outputs.dist_tag }}"
-      - uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          prerelease: ${{ steps.meta.outputs.prerelease }}
+      - name: Create GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "GitHub release for $GITHUB_REF_NAME already exists."
+            exit 0
+          fi
+
+          args=(release create "$GITHUB_REF_NAME" --verify-tag --generate-notes)
+
+          if [[ "$PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+
+          gh "${args[@]}"

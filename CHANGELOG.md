@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1-beta.7
+
+- replace `softprops/action-gh-release@v2` with `gh release create` in the release workflow
+- avoid the GitHub Actions Node 20 deprecation warning from the release step
+
 ## 0.1.1-beta.6
 
 - let users replace the plugin's base `agent.plan.prompt` instead of appending to it
