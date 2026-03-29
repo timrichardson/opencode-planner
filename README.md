@@ -1,7 +1,8 @@
 # opencode-planner
 
-`opencode-planner` is an OpenCode plugin that adds a dedicated `plan` agent for read-only planning before implementation. It's based on the experimental plan agent. That is, it likes to use sub-agents and a structured approach to planning.
-It asks clarifying questions, and produces a markdown file. When Plannotator is installed, it can submit the finished plan for richer review. Without Plannotator, it can open the plan in your configured external editor for review.
+`opencode-planner` is an OpenCode plugin that adds a dedicated `plan` agent for read-only planning before implementation. Its functionality is an emulation of the experimental plan agent (it has no hard dependency on EXPERIMENTAL_PLAN_MODE=1, altough that setting enables a tool called plan_exit which this plugin will use if available). That is, it likes to use sub-agents and a structured approach to planning, asks clarifying questions, and finally it produces a markdown file. 
+
+When Plannotator is installed, it can submit the finished plan for richer review. Without Plannotator, it can open the plan in your configured external editor for review.
 
 After review, the agent can hand back to implementation mode by calling `plan_exit` only when the host runtime exposes that tool. In current OpenCode builds, that means experimental plan mode must be enabled and the client must be `cli`. If it's not enabled, you need to prompt the build agent to start work.
 
