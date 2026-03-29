@@ -100,6 +100,44 @@ test("config hook enables plan_exit when experimental plan mode is active", asyn
   )
 })
 
+test("config hook denies submit_plan and plan_exit for planner subagents", async () => {
+  await withEnv(
+    {
+      OPENCODE_EXPERIMENTAL: undefined,
+      OPENCODE_EXPERIMENTAL_PLAN_MODE: "1",
+      OPENCODE_CLIENT: "cli",
+    },
+    async () => {
+      const plugin = await plannerPlugin()
+      const cfg = {
+        agent: {
+          general: {
+            permission: {
+              plan_exit: "allow",
+              submit_plan: "allow",
+              webfetch: "deny",
+            },
+          },
+          explore: {
+            permission: {
+              plan_exit: "allow",
+              submit_plan: "allow",
+            },
+          },
+        },
+      }
+
+      await plugin.config(cfg)
+
+      assert.equal(cfg.agent.general.permission.plan_exit, "deny")
+      assert.equal(cfg.agent.general.permission.submit_plan, "deny")
+      assert.equal(cfg.agent.general.permission.webfetch, "deny")
+      assert.equal(cfg.agent.explore.permission.plan_exit, "deny")
+      assert.equal(cfg.agent.explore.permission.submit_plan, "deny")
+    },
+  )
+})
+
 test("chat.message injects a planner reminder part", async () => {
   await withEnv(
     {

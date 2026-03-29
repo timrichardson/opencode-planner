@@ -36,6 +36,7 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - injects a system reminder that keeps the planning workflow explicit
 - lets users replace the plugin's base `plan` prompt with their own `agent.plan.prompt`
 - lets users override agent settings such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`
+- denies `submit_plan` and `plan_exit` to the built-in `general` and `explore` subagents so review and implementation handoff stay on the primary `plan` agent
 - exposes a `plan_prompt` tool so the `plan` agent can reveal the plugin's prompt basis for customization
 - uses `submit_plan` for review when available, otherwise falls back to manual chat review
 - can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime

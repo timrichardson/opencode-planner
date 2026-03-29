@@ -118,6 +118,16 @@ function merge(a, b) {
   return out
 }
 
+function restrictPlannerSubagent(input = {}) {
+  return {
+    ...input,
+    permission: merge(input?.permission, {
+      plan_exit: "deny",
+      submit_plan: "deny",
+    }),
+  }
+}
+
 function mode(input = {}) {
   const base = {
     mode: "primary",
@@ -185,6 +195,8 @@ export default async function plannerPlugin() {
     async config(cfg) {
       cfg.agent ??= {}
       cfg.agent[agent] = mode(cfg.agent[agent])
+      cfg.agent.general = restrictPlannerSubagent(cfg.agent.general)
+      cfg.agent.explore = restrictPlannerSubagent(cfg.agent.explore)
     },
     async "chat.message"(input, output) {
       if (input.agent !== agent) {
