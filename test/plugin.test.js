@@ -61,6 +61,7 @@ test("config hook registers the plan agent without plan_exit by default", async 
       assert.equal(cfg.agent.plan.permission.plan_exit, undefined)
       assert.match(cfg.agent.plan.prompt, /if the submit_plan tool is available/i)
       assert.match(cfg.agent.plan.prompt, /call edit_plan to open the markdown plan/i)
+      assert.match(cfg.agent.plan.prompt, /treat that as review feedback on the plan/i)
       assert.match(cfg.agent.plan.prompt, /ask for review in chat/i)
       assert.doesNotMatch(cfg.agent.plan.prompt, /plan_exit/)
     },
@@ -159,7 +160,7 @@ test("config hook denies review handoff tools for planner subagents", async () =
   )
 })
 
-test("edit_plan opens the current session plan in the configured editor", async () => {
+test("edit_plan reports when the editor closes without changes", async () => {
   await withEnv(
     {
       PLAN_VISUAL: undefined,
@@ -179,8 +180,41 @@ test("edit_plan opens the current session plan in the configured editor", async 
             },
           )
 
-          assert.match(output, /edited in your external editor/i)
+          assert.match(output, /No changes were made/i)
+          assert.match(output, /## Current plan/)
           assert.match(output, /# Edited plan/)
+        },
+      )
+    },
+  )
+})
+
+test("edit_plan reports external edits when the plan changes", async () => {
+  await withEnv(
+    {
+      PLAN_VISUAL: "sh -lc 'printf \"# Revised plan\\n\\n- updated\\n\" > \"$1\"' sh",
+      VISUAL: "false",
+      EDITOR: "false",
+    },
+    async () => {
+      await withPlanFile(
+        ".opencode/plans/ses_edit_changed.md",
+        "# Original plan\n\n- original\n",
+        async () => {
+          const plugin = await plannerPlugin()
+          const output = await plugin.tool.edit_plan.execute(
+            {},
+            {
+              sessionID: "ses_edit_changed",
+            },
+          )
+
+          assert.match(output, /The user edited the plan externally/i)
+          assert.match(output, /Treat these external edits as review feedback/i)
+          assert.match(output, /## Previous plan/)
+          assert.match(output, /# Original plan/)
+          assert.match(output, /## Updated plan/)
+          assert.match(output, /# Revised plan/)
         },
       )
     },
@@ -236,6 +270,105 @@ test("edit_plan reports when no blocking editor command is configured", async ()
   )
 })
 
+test("plan_exit stays blocked if the plan changed after submit_plan", async () => {
+  await withEnv(
+    {
+      OPENCODE_EXPERIMENTAL: undefined,
+      OPENCODE_EXPERIMENTAL_PLAN_MODE: "1",
+      OPENCODE_CLIENT: "cli",
+    },
+    async () => {
+      await withPlanFile(
+        ".opencode/plans/ses_dirty.md",
+        "# Submitted plan\n\n- step one\n",
+        async () => {
+          const plugin = await plannerPlugin()
+
+          await plugin["tool.execute.after"](
+            {
+              tool: "submit_plan",
+              sessionID: "ses_dirty",
+              callID: "call_submit",
+              args: {
+                plan: "/tmp/ignored.md",
+              },
+            },
+            {
+              title: "submit_plan",
+              output: "ok",
+              metadata: {},
+            },
+          )
+
+          await writeFile(new URL("../.opencode/plans/ses_dirty.md", import.meta.url), "# Revised plan\n")
+
+          await assert.rejects(
+            plugin["tool.execute.before"](
+              {
+                tool: "plan_exit",
+                sessionID: "ses_dirty",
+                callID: "call_exit",
+              },
+              {
+                args: {},
+              },
+            ),
+            /changed since the last submit_plan review/i,
+          )
+        },
+      )
+    },
+  )
+})
+
+test("plan_exit remains available when the submitted plan is unchanged", async () => {
+  await withEnv(
+    {
+      OPENCODE_EXPERIMENTAL: undefined,
+      OPENCODE_EXPERIMENTAL_PLAN_MODE: "1",
+      OPENCODE_CLIENT: "cli",
+    },
+    async () => {
+      await withPlanFile(
+        ".opencode/plans/ses_clean.md",
+        "# Submitted plan\n\n- step one\n",
+        async () => {
+          const plugin = await plannerPlugin()
+
+          await plugin["tool.execute.after"](
+            {
+              tool: "submit_plan",
+              sessionID: "ses_clean",
+              callID: "call_submit",
+              args: {
+                plan: "/tmp/ignored.md",
+              },
+            },
+            {
+              title: "submit_plan",
+              output: "ok",
+              metadata: {},
+            },
+          )
+
+          await assert.doesNotReject(
+            plugin["tool.execute.before"](
+              {
+                tool: "plan_exit",
+                sessionID: "ses_clean",
+                callID: "call_exit",
+              },
+              {
+                args: {},
+              },
+            ),
+          )
+        },
+      )
+    },
+  )
+})
+
 test("chat.message injects a planner reminder part", async () => {
   await withEnv(
     {
@@ -265,8 +398,10 @@ test("chat.message injects a planner reminder part", async () => {
       assert.match(output.parts[0].text, /Planner mode is active\./)
       assert.match(output.parts[0].text, /if the submit_plan tool is available/i)
       assert.match(output.parts[0].text, /call edit_plan to open the markdown plan/i)
+      assert.match(output.parts[0].text, /treat that as review feedback on the plan/i)
       assert.match(output.parts[0].text, /ask for review in chat/i)
       assert.match(output.parts[0].text, /plan_exit/)
+      assert.match(output.parts[0].text, /If the plan changed after submit_plan/i)
     },
   )
 })
@@ -304,8 +439,10 @@ test("system transform only applies after planner messages", async () => {
       assert.equal(system.system.length, 1)
       assert.match(system.system[0], /if the submit_plan tool is available/i)
       assert.match(system.system[0], /call edit_plan to open the markdown plan/i)
+      assert.match(system.system[0], /treat that as review feedback on the plan/i)
       assert.match(system.system[0], /ask for review in chat/i)
       assert.match(system.system[0], /plan_exit/)
+      assert.match(system.system[0], /If the plan changed after submit_plan/i)
     },
   )
 })
@@ -332,6 +469,7 @@ test("plan_prompt tool returns the plugin prompt basis without plan_exit by defa
       assert.match(output, /injected by the plugin at runtime/i)
       assert.match(output, /not customized through `agent\.plan\.prompt`/i)
       assert.match(output, /call edit_plan to open the markdown plan/i)
+      assert.match(output, /treat that as review feedback on the plan/i)
       assert.match(output, /```json/)
       assert.match(output, /"agent": \{/)
       assert.match(output, /\.opencode\/plans\/ses_tool\.md/)
@@ -358,6 +496,7 @@ test("plan_prompt tool mentions plan_exit when experimental plan mode is active"
       )
 
       assert.match(output, /call plan_exit/)
+      assert.match(output, /If the plan changed after submit_plan/i)
     },
   )
 })

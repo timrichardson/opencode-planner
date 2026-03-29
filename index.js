@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { spawn } from "node:child_process"
 import { readFile } from "node:fs/promises"
 import path from "path"
@@ -26,6 +27,7 @@ function reviewInstruction(target) {
   return [
     `When the plan is complete, if the submit_plan tool is available, use it to submit the plan for review.`,
     `Otherwise, call edit_plan to open the markdown plan in the configured external editor for review. If edit_plan fails, tell the user the plan is ready at ${target} and ask for review in chat.`,
+    `If edit_plan reports that the user changed the plan externally, treat that as review feedback on the plan, summarize the changes, and continue planning from the revised plan.`,
   ].join(" ")
 }
 
@@ -41,6 +43,7 @@ function agentPrompt(target = defaultPlanTarget) {
     ...(planExit
       ? [
           "After approval, if the user or Plannotator says something like 'Proceed with implementation', call plan_exit to hand off back to implementation mode.",
+          "If the plan changes after submit_plan, stay in planner mode, update the plan as needed, and call submit_plan again before plan_exit.",
         ]
       : []),
   ].join("\n\n")
@@ -89,6 +92,7 @@ function note(id) {
       out.length - 1,
       0,
       "If the user or Plannotator then says something like 'Proceed with implementation', call the plan_exit tool to leave planner mode.",
+      "If the plan changed after submit_plan, do not call plan_exit yet. Revise as needed and call submit_plan again first.",
     )
   }
 
@@ -136,6 +140,67 @@ function editorCommand() {
   return process.env.PLAN_VISUAL?.trim() || process.env.VISUAL?.trim() || process.env.EDITOR?.trim() || ""
 }
 
+function hashPlan(content) {
+  return createHash("sha256").update(content).digest("hex")
+}
+
+async function readIfExists(target) {
+  try {
+    return await readFile(target, "utf8")
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return null
+    }
+
+    throw error
+  }
+}
+
+function formatPlanBlock(title, content, fallback) {
+  return [title, "````markdown", content && content.trim() ? content : fallback, "````"].join("\n")
+}
+
+async function snapshotSubmittedPlan(sessionID, args) {
+  const defaultTarget = file(sessionID)
+  const currentFile = await readIfExists(defaultTarget)
+  if (currentFile !== null) {
+    return {
+      target: defaultTarget,
+      hash: hashPlan(currentFile),
+    }
+  }
+
+  const submitted = typeof args?.plan === "string" ? args.plan : ""
+  if (!submitted.trim()) return null
+
+  if (path.isAbsolute(submitted)) {
+    const content = await readIfExists(submitted)
+    if (content !== null) {
+      return {
+        target: submitted,
+        hash: hashPlan(content),
+      }
+    }
+  }
+
+  return {
+    target: null,
+    hash: hashPlan(submitted),
+  }
+}
+
+async function planChangedSinceSubmit(sessionID, submitted) {
+  if (!submitted) return false
+
+  const target = submitted.target ?? file(sessionID)
+  const current = await readIfExists(target)
+  if (current === null) {
+    return submitted.target !== null
+  }
+
+  return hashPlan(current) !== submitted.hash
+}
+
 function runEditor(target) {
   const editor = editorCommand()
   if (!editor) {
@@ -177,12 +242,13 @@ function runEditor(target) {
 
 async function editPlan(sessionID) {
   const target = file(sessionID ?? "<session-id>")
+  const before = await readIfExists(target)
   await runEditor(target)
 
-  let content = ""
+  let after = ""
 
   try {
-    content = await readFile(target, "utf8")
+    after = await readFile(target, "utf8")
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       throw new Error(`The plan file \`${target}\` does not exist yet. Finish writing the plan first.`)
@@ -191,8 +257,25 @@ async function editPlan(sessionID) {
     throw error
   }
 
-  const rendered = content.trim() ? content : `The plan file \`${target}\` is empty.`
-  return [`The plan was edited in your external editor.`, `File: ${target}`, "", rendered].join("\n")
+  if (before === after) {
+    return [
+      "The plan was reopened in your external editor. No changes were made.",
+      `File: ${target}`,
+      "",
+      formatPlanBlock("## Current plan", after, `The plan file \`${target}\` is empty.`),
+    ].join("\n")
+  }
+
+  return [
+    "The user edited the plan externally.",
+    `File: ${target}`,
+    "",
+    "Treat these external edits as review feedback on the plan. Summarize what changed, continue planning from the updated plan, and if this plan was already reviewed with submit_plan, submit the revised plan again before plan_exit.",
+    "",
+    formatPlanBlock("## Previous plan", before, "_(The plan file did not exist before editing.)_"),
+    "",
+    formatPlanBlock("## Updated plan", after, `The plan file \`${target}\` is empty.`),
+  ].join("\n")
 }
 
 function mode(input = {}) {
@@ -249,6 +332,7 @@ function mode(input = {}) {
 
 export default async function plannerPlugin() {
   const seen = new Set()
+  const submittedPlans = new Map()
 
   return {
     tool: {
@@ -288,6 +372,22 @@ export default async function plannerPlugin() {
         text: note(input.sessionID),
         synthetic: true,
       })
+    },
+    async "tool.execute.before"(input) {
+      if (input.tool !== "plan_exit") return
+
+      const submitted = submittedPlans.get(input.sessionID)
+      if (!(await planChangedSinceSubmit(input.sessionID, submitted))) return
+
+      throw new Error(
+        "The plan has changed since the last submit_plan review. Stay in planner mode, update the plan as needed, and call submit_plan again before plan_exit.",
+      )
+    },
+    async "tool.execute.after"(input) {
+      if (input.tool !== "submit_plan") return
+
+      const snapshot = await snapshotSubmittedPlan(input.sessionID, input.args)
+      if (snapshot) submittedPlans.set(input.sessionID, snapshot)
     },
     async "experimental.chat.system.transform"(input, output) {
       if (!input.sessionID || !seen.has(input.sessionID)) return

@@ -41,6 +41,7 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - exposes a `plan_prompt` tool so the `plan` agent can reveal the plugin's prompt basis for customization
 - exposes an `edit_plan` tool so the `plan` agent can open the current plan in the configured external editor
 - uses `submit_plan` for review when available, otherwise falls back to external-editor review
+- keeps the agent in planner mode if the plan file changed after `submit_plan`; the revised plan must be resubmitted before `plan_exit`
 - can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime
 
 ## Customize the plan agent
@@ -87,6 +88,10 @@ Example:
 If submit_plan is unavailable, call edit_plan so I can review the plan in my editor.
 ```
 
+If you want to reopen the same plan after an initial review pass, prompt the `plan` agent with something like `edit the plan again externally`. That will cause it to call `edit_plan` again and reopen the current plan in the configured editor.
+
+When the editor closes, `edit_plan` compares the plan before and after editing. If nothing changed, it reports that no changes were made. If the user edited the plan, the tool returns the previous and updated plan content so the `plan` agent can treat that as review feedback, summarize the edits, and continue planning from the revised plan.
+
 `edit_plan` uses `PLAN_VISUAL` first, then `VISUAL`, then `EDITOR`. `PLAN_VISUAL` is useful when you want planner review to use a different editor from the rest of your shell tools. The command must launch a separate process and block until editing is complete.
 
 Compatible examples:
@@ -108,6 +113,8 @@ Examples:
 - a small wrapper script for your terminal emulator that launches `vim` or `nvim` in a separate window and blocks until it exits
 
 If `edit_plan` fails, the `plan` agent should fall back to telling you the plan file path and asking for review in chat.
+
+If you edit the plan after calling `submit_plan`, the plugin treats that as a new draft. In that case the agent should stay in planner mode and call `submit_plan` again before `plan_exit`.
 
 ## Auto-updates
 
