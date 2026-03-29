@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1-beta.11
+
+- add planner-specific `PLAN_VISUAL` support for external plan review editor selection
+- treat external `edit_plan` changes as plan review feedback and require resubmission before `plan_exit`
+
 ## 0.1.1-beta.10
 
 - deny `submit_plan` and `plan_exit` to the built-in `general` and `explore` subagents used by the planner
