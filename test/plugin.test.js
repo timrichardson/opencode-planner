@@ -40,11 +40,43 @@ test("config hook registers the plan agent without plan_exit by default", async 
 
       assert.equal(cfg.agent.plan.mode, "primary")
       assert.equal(cfg.agent.plan.permission.bash, "deny")
+      assert.equal(cfg.agent.plan.permission.plan_prompt, "allow")
       assert.equal(cfg.agent.plan.permission.submit_plan, "allow")
       assert.equal(cfg.agent.plan.permission.plan_exit, undefined)
       assert.match(cfg.agent.plan.prompt, /if the submit_plan tool is available/i)
       assert.match(cfg.agent.plan.prompt, /ask for review in chat/i)
       assert.doesNotMatch(cfg.agent.plan.prompt, /plan_exit/)
+    },
+  )
+})
+
+test("config hook lets users replace the plugin prompt", async () => {
+  await withEnv(
+    {
+      OPENCODE_EXPERIMENTAL: undefined,
+      OPENCODE_EXPERIMENTAL_PLAN_MODE: undefined,
+      OPENCODE_CLIENT: undefined,
+    },
+    async () => {
+      const plugin = await plannerPlugin()
+      const cfg = {
+        agent: {
+          plan: {
+            prompt: "Use my custom plan instructions only.",
+            permission: {
+              webfetch: "deny",
+            },
+          },
+        },
+      }
+
+      await plugin.config(cfg)
+
+      assert.equal(cfg.agent.plan.prompt, "Use my custom plan instructions only.")
+      assert.equal(cfg.agent.plan.permission.webfetch, "deny")
+      assert.equal(cfg.agent.plan.permission.bash, "deny")
+      assert.equal(cfg.agent.plan.permission.plan_prompt, "allow")
+      assert.doesNotMatch(cfg.agent.plan.prompt, /if the submit_plan tool is available/i)
     },
   )
 })
@@ -136,6 +168,57 @@ test("system transform only applies after planner messages", async () => {
       assert.match(system.system[0], /if the submit_plan tool is available/i)
       assert.match(system.system[0], /ask for review in chat/i)
       assert.match(system.system[0], /plan_exit/)
+    },
+  )
+})
+
+test("plan_prompt tool returns the plugin prompt basis without plan_exit by default", async () => {
+  await withEnv(
+    {
+      OPENCODE_EXPERIMENTAL: undefined,
+      OPENCODE_EXPERIMENTAL_PLAN_MODE: undefined,
+      OPENCODE_CLIENT: undefined,
+    },
+    async () => {
+      const plugin = await plannerPlugin()
+      const output = await plugin.tool.plan_prompt.execute(
+        {},
+        {
+          sessionID: "ses_tool",
+        },
+      )
+
+      assert.match(output, /# opencode-planner prompt basis/)
+      assert.match(output, /## Base prompt/)
+      assert.match(output, /## Planner reminder/)
+      assert.match(output, /injected by the plugin at runtime/i)
+      assert.match(output, /not customized through `agent\.plan\.prompt`/i)
+      assert.match(output, /```json/)
+      assert.match(output, /"agent": \{/)
+      assert.match(output, /\.opencode\/plans\/ses_tool\.md/)
+      assert.match(output, /agent\.plan\.prompt/)
+      assert.doesNotMatch(output, /call plan_exit/)
+    },
+  )
+})
+
+test("plan_prompt tool mentions plan_exit when experimental plan mode is active", async () => {
+  await withEnv(
+    {
+      OPENCODE_EXPERIMENTAL: undefined,
+      OPENCODE_EXPERIMENTAL_PLAN_MODE: "1",
+      OPENCODE_CLIENT: "cli",
+    },
+    async () => {
+      const plugin = await plannerPlugin()
+      const output = await plugin.tool.plan_prompt.execute(
+        {},
+        {
+          sessionID: "ses_tool",
+        },
+      )
+
+      assert.match(output, /call plan_exit/)
     },
   )
 })

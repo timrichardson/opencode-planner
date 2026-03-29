@@ -34,8 +34,42 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - adds a `plan` agent intended for design and implementation planning
 - constrains that agent to read-only tools plus markdown plan editing
 - injects a system reminder that keeps the planning workflow explicit
+- lets users replace the plugin's base `plan` prompt with their own `agent.plan.prompt`
+- exposes a `plan_prompt` tool so the `plan` agent can show the plugin's prompt basis for customization
 - uses `submit_plan` for review when available, otherwise falls back to manual chat review
 - can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime
+
+## Customize the plan prompt
+
+If you set `agent.plan.prompt`, it replaces the plugin's base prompt instead of being appended to it.
+
+```json
+{
+  "agent": {
+    "plan": {
+      "prompt": "You are my planning agent. Focus on migration risk, rollout steps, and testing strategy."
+    }
+  }
+}
+```
+
+The runtime planner reminder still applies, so the agent stays in planner mode and continues to use the review handoff flow. That reminder is injected by the plugin at runtime and is not customized through `agent.plan.prompt`.
+
+## Reveal the plugin prompt basis
+
+The plugin also adds a read-only `plan_prompt` tool. Ask the `plan` agent to use it when you want the plugin's own prompt text as a starting point for customization.
+
+Example:
+
+```text
+Use the plan_prompt tool and show me the plugin prompt so I can customize it.
+```
+
+The tool returns:
+
+- the plugin base prompt
+- the injected planner reminder, which is plugin-controlled runtime guidance and is not customized via `agent.plan.prompt`
+- a short note explaining that the final runtime prompt can still differ because of user config, other plugins, or runtime tool availability like `plan_exit`
 
 ## Auto-updates
 
@@ -57,7 +91,7 @@ npm run debug:plan
 npm run opencode:no-plannotator -- debug config
 ```
 
-`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `submit_plan` and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
+`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `plan_prompt`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
 
 This is the fastest way to distinguish:
 

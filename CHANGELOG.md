@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1-beta.6
+
+- let users replace the plugin's base `agent.plan.prompt` instead of appending to it
+- add a `plan_prompt` tool so the `plan` agent can reveal the plugin prompt basis for customization
+
 ## 0.1.1-beta.5
 
 - gate `plan_exit` instructions on the OpenCode experimental plan-mode runtime flags

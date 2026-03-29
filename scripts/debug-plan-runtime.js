@@ -40,8 +40,10 @@ const permissions = plan.permission ?? []
 const tools = plan.tools ?? {}
 const prompt = plan.prompt ?? ""
 
+const planPromptAllowed = hasAllowedPermission("plan_prompt", permissions)
 const planExitAllowed = hasAllowedPermission("plan_exit", permissions)
 const submitPlanAllowed = hasAllowedPermission("submit_plan", permissions)
+const planPromptTool = Boolean(tools.plan_prompt)
 const planExitTool = Boolean(tools.plan_exit)
 const submitPlanTool = Boolean(tools.submit_plan)
 const usingLocalPlugin = plugins.includes(localPlugin)
@@ -50,6 +52,8 @@ const promptMentionsPlanExit = prompt.includes("plan_exit")
 console.log("OpenCode plan runtime check")
 console.log("")
 line("Repo plugin loaded", usingLocalPlugin ? "yes" : "no")
+line("plan_prompt allowed", planPromptAllowed ? "yes" : "no")
+line("plan_prompt tool", planPromptTool ? "yes" : "no")
 line("submit_plan allowed", submitPlanAllowed ? "yes" : "no")
 line("plan_exit allowed", planExitAllowed ? "yes" : "no")
 line("submit_plan tool", submitPlanTool ? "yes" : "no")
@@ -69,6 +73,9 @@ for (const plugin of plugins) {
 console.log("\nAssessment:")
 if (!usingLocalPlugin) {
   console.log(`- OpenCode is not using the local repo plugin at ${localPlugin}.`)
+}
+if (!planPromptTool) {
+  console.log("- plan_prompt is not registered as a runtime tool.")
 }
 if (!submitPlanTool) {
   console.log("- submit_plan is not registered as a runtime tool.")
