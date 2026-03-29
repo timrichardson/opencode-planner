@@ -6,17 +6,17 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm ci
@@ -44,9 +44,7 @@ jobs:
             echo "Tag version ${{ steps.meta.outputs.version }} does not match package.json version $package_version" >&2
             exit 1
           fi
-      - run: npm publish --access public --tag "${{ steps.meta.outputs.dist_tag }}" --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --access public --tag "${{ steps.meta.outputs.dist_tag }}"
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true

@@ -63,11 +63,18 @@ The repository includes GitHub Actions templates for CI and npm publishing from 
 
 ## GitHub Actions setup
 
-Set this repository secret for automated npm publishing:
+Configure npm Trusted Publishing for this package:
 
-- `NPM_TOKEN`
+1. Open the `opencode-planner` package settings on npm.
+2. Add a GitHub Actions trusted publisher.
+3. Use:
+   - GitHub user/org: `timrichardson`
+   - Repository: `opencode-planner`
+   - Workflow filename: `release.yml`
 
 The release workflow publishes prerelease tags like `v0.1.1-beta.1` to the npm `beta` dist-tag, stable tags like `v0.1.1` to `latest`, and creates matching GitHub release notes automatically.
+
+Trusted Publishing uses GitHub OIDC and does not require an `NPM_TOKEN` secret for publishing.
 
 ## License
 
