@@ -3,20 +3,48 @@ import path from "path"
 const agent = "plan"
 const root = ".opencode/plans"
 
+function truthy(key) {
+  const value = process.env[key]?.toLowerCase()
+  return value === "true" || value === "1"
+}
+
+function hasPlanExit() {
+  const experimentalPlanMode = truthy("OPENCODE_EXPERIMENTAL") || truthy("OPENCODE_EXPERIMENTAL_PLAN_MODE")
+  const client = process.env.OPENCODE_CLIENT ?? "cli"
+  return experimentalPlanMode && client === "cli"
+}
+
 function file(id) {
   return path.posix.join(root, `${id}.md`)
 }
 
-function note(id) {
+function reviewInstruction(target) {
   return [
+    `When the plan is complete, if the submit_plan tool is available, use it to submit the plan for review.`,
+    `Otherwise, tell the user the plan is ready at ${target} and ask for review in chat.`,
+  ].join(" ")
+}
+
+function note(id) {
+  const out = [
     "<system-reminder>",
     "Planner mode is active.",
     "You must not edit source files, run bash, change config, or make commits.",
     "You may only use read-only tools, ask clarifying questions, delegate exploration or design with the task tool, and edit allowed markdown plan files.",
     `Write the plan to ${file(id)} or another allowed *.plan.md/*.spec.md file.`,
-    "When the plan is complete, call the submit_plan tool to open Plannotator for review.",
+    reviewInstruction(file(id)),
     "</system-reminder>",
-  ].join("\n")
+  ]
+
+  if (hasPlanExit()) {
+    out.splice(
+      out.length - 1,
+      0,
+      "If the user or Plannotator then says something like 'Proceed with implementation', call the plan_exit tool to leave planner mode.",
+    )
+  }
+
+  return out.join("\n")
 }
 
 function partID() {
@@ -46,6 +74,7 @@ function merge(a, b) {
 }
 
 function mode(input = {}) {
+  const planExit = hasPlanExit()
   const base = {
     mode: "primary",
     color: "info",
@@ -55,7 +84,12 @@ function mode(input = {}) {
       "Stay in planning mode: inspect the codebase, ask targeted questions when needed, and write a concise execution plan before implementation.",
       "Default plan path: .opencode/plans/<session-id>.md.",
       "Prefer the task tool with the explore and general subagents for deeper research.",
-      "Do not stop after writing the plan; call submit_plan to submit the plan for review.",
+      reviewInstruction(".opencode/plans/<session-id>.md"),
+      ...(planExit
+        ? [
+            "After approval, if the user or Plannotator says something like 'Proceed with implementation', call plan_exit to hand off back to implementation mode.",
+          ]
+        : []),
     ].join("\n\n"),
     permission: {
       "*": "deny",
@@ -78,6 +112,7 @@ function mode(input = {}) {
       codesearch: "allow",
       batch: "allow",
       submit_plan: "allow",
+      ...(planExit ? { plan_exit: "allow" } : {}),
       edit: {
         "*": "deny",
         [path.posix.join(root, "*.md")]: "allow",

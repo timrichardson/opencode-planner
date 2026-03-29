@@ -1,9 +1,9 @@
 # opencode-planner
 
 `opencode-planner` is an OpenCode plugin that adds a dedicated `plan` agent for read-only planning before implementation. It's based on the experimental plan agent. That is, it likes to use sub-agents and a structured approach to planning.
-It asks clarifying questions, and produces a markdown file. This plugin will call-out to plannotator for elegant viewing and editing. 
+It asks clarifying questions, and produces a markdown file. When Plannotator is installed, it can submit the finished plan for richer review. Without Plannotator, it falls back to a normal chat-based review handoff.
 
-The plugin requires the user to switch back to the Build agent.
+After review, the agent can hand back to implementation mode by calling `plan_exit` only when the host runtime exposes that tool. In current OpenCode builds, that means experimental plan mode must be enabled and the client must be `cli`.
 
 Repository: <https://github.com/timrichardson/opencode-planner>
 
@@ -34,6 +34,8 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - adds a `plan` agent intended for design and implementation planning
 - constrains that agent to read-only tools plus markdown plan editing
 - injects a system reminder that keeps the planning workflow explicit
+- uses `submit_plan` for review when available, otherwise falls back to manual chat review
+- can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime
 
 ## Auto-updates
 
@@ -51,7 +53,24 @@ If OpenCode appears to keep an older cached plugin, clear the cache under `~/.ca
 
 ```bash
 npm test
+npm run debug:plan
+npm run opencode:no-plannotator -- debug config
 ```
+
+`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `submit_plan` and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
+
+This is the fastest way to distinguish:
+
+- prompt/config issues inside this repo
+- runtime tool-registration issues in OpenCode or Plannotator
+
+To test this plugin without the globally installed Plannotator plugin, use the sandbox launcher:
+
+```bash
+npm run opencode:no-plannotator
+```
+
+It starts OpenCode with an isolated temporary home/config, keeps the local repo plugin loaded, and filters out `@plannotator/opencode` from the plugin list without changing your real global config.
 
 ## Release process
 

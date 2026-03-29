@@ -13,7 +13,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "debug:plan": "node scripts/debug-plan-runtime.js",
+    "opencode:no-plannotator": "node scripts/run-opencode-sandbox.js --without-plannotator"
   },
   "keywords": [
     "opencode",
