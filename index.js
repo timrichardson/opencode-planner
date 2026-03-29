@@ -133,14 +133,14 @@ function restrictPlannerSubagent(input = {}) {
 }
 
 function editorCommand() {
-  return process.env.VISUAL?.trim() || process.env.EDITOR?.trim() || ""
+  return process.env.PLAN_VISUAL?.trim() || process.env.VISUAL?.trim() || process.env.EDITOR?.trim() || ""
 }
 
 function runEditor(target) {
   const editor = editorCommand()
   if (!editor) {
     throw new Error(
-      "Neither `VISUAL` nor `EDITOR` is set, so edit_plan cannot open the plan. Configure a blocking editor command such as `code --wait`, or a terminal launcher that opens your editor in a separate window and waits.",
+      "None of `PLAN_VISUAL`, `VISUAL`, or `EDITOR` is set, so edit_plan cannot open the plan. Configure a blocking editor command such as `code --wait`, or a terminal launcher that opens your editor in a separate window and waits.",
     )
   }
 
@@ -168,7 +168,7 @@ function runEditor(target) {
       const suffix = detail ? `: ${detail}` : ""
       reject(
         new Error(
-          `The external editor command exited with status ${code}${suffix}. Configure VISUAL or EDITOR to launch a separate process that waits until editing is complete.`,
+          `The external editor command exited with status ${code}${suffix}. Configure PLAN_VISUAL, VISUAL, or EDITOR to launch a separate process that waits until editing is complete.`,
         ),
       )
     })

@@ -86,10 +86,11 @@ Example:
 If submit_plan is unavailable, call edit_plan so I can review the plan in my editor.
 ```
 
-`edit_plan` uses `VISUAL` first, then `EDITOR`. The command must launch a separate process and block until editing is complete.
+`edit_plan` uses `PLAN_VISUAL` first, then `VISUAL`, then `EDITOR`. `PLAN_VISUAL` is useful when you want planner review to use a different editor from the rest of your shell tools. The command must launch a separate process and block until editing is complete.
 
 Compatible examples:
 
+- `PLAN_VISUAL="gvim -f"`
 - `VISUAL="gvim -f"`
 - `EDITOR="gedit --wait"`
 - `EDITOR="kate --block"`

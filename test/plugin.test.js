@@ -6,6 +6,9 @@ import plannerPlugin from "../index.js"
 
 async function withEnv(env, fn) {
   const previous = {
+    PLAN_VISUAL: process.env.PLAN_VISUAL,
+    VISUAL: process.env.VISUAL,
+    EDITOR: process.env.EDITOR,
     OPENCODE_EXPERIMENTAL: process.env.OPENCODE_EXPERIMENTAL,
     OPENCODE_EXPERIMENTAL_PLAN_MODE: process.env.OPENCODE_EXPERIMENTAL_PLAN_MODE,
     OPENCODE_CLIENT: process.env.OPENCODE_CLIENT,
@@ -159,6 +162,7 @@ test("config hook denies review handoff tools for planner subagents", async () =
 test("edit_plan opens the current session plan in the configured editor", async () => {
   await withEnv(
     {
+      PLAN_VISUAL: undefined,
       VISUAL: "true",
       EDITOR: "false",
     },
@@ -183,9 +187,37 @@ test("edit_plan opens the current session plan in the configured editor", async 
   )
 })
 
+test("edit_plan prefers PLAN_VISUAL over VISUAL and EDITOR", async () => {
+  await withEnv(
+    {
+      PLAN_VISUAL: "true",
+      VISUAL: "false",
+      EDITOR: "false",
+    },
+    async () => {
+      await withPlanFile(
+        ".opencode/plans/ses_edit_override.md",
+        "# Edited with PLAN_VISUAL\n",
+        async () => {
+          const plugin = await plannerPlugin()
+          const output = await plugin.tool.edit_plan.execute(
+            {},
+            {
+              sessionID: "ses_edit_override",
+            },
+          )
+
+          assert.match(output, /# Edited with PLAN_VISUAL/)
+        },
+      )
+    },
+  )
+})
+
 test("edit_plan reports when no blocking editor command is configured", async () => {
   await withEnv(
     {
+      PLAN_VISUAL: undefined,
       VISUAL: undefined,
       EDITOR: undefined,
     },
@@ -198,7 +230,7 @@ test("edit_plan reports when no blocking editor command is configured", async ()
             sessionID: "ses_edit",
           },
         ),
-        /Neither `VISUAL` nor `EDITOR` is set/i,
+        /None of `PLAN_VISUAL`, `VISUAL`, or `EDITOR` is set/i,
       )
     },
   )
