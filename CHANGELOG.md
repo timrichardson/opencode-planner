@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1-beta.3
+
+- restore GitHub release permissions in the release workflow
+- stop tracking IDE project files in git
+
 ## 0.1.1-beta.2
 
 - test GitHub Actions release publishing via npm Trusted Publishing
