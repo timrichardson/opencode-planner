@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1-beta.10
+
+- deny `submit_plan` and `plan_exit` to the built-in `general` and `explore` subagents used by the planner
+- clarify npm plugin update wording in the README and remove redundant prompt-customization intro text
+
 ## 0.1.1-beta.9
 
 - fix README documentation for `agent.plan.prompt` replacement behavior
