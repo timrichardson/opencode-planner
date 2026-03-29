@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1-beta.1
+
+- mark npm publishes as public so first-time prerelease publication works with provenance enabled
+
 ## 0.1.1-beta.0
 
 - mark the package as an explicit prerelease line

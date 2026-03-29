@@ -44,7 +44,7 @@ jobs:
             echo "Tag version ${{ steps.meta.outputs.version }} does not match package.json version $package_version" >&2
             exit 1
           fi
-      - run: npm publish --tag "${{ steps.meta.outputs.dist_tag }}" --provenance
+      - run: npm publish --access public --tag "${{ steps.meta.outputs.dist_tag }}" --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - uses: softprops/action-gh-release@v2

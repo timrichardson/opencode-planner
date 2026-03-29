@@ -22,7 +22,7 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 
 ```json
 {
-  "plugin": ["opencode-planner@0.1.1-beta.0"]
+  "plugin": ["opencode-planner@0.1.1-beta.1"]
 }
 ```
 
@@ -55,7 +55,7 @@ npm test
 1. Update `CHANGELOG.md`.
 2. Bump the version in `package.json`.
 3. Commit the release.
-4. Create and push a git tag like `v0.1.1-beta.0` for prereleases or `v0.1.1` for stable releases.
+4. Create and push a git tag like `v0.1.1-beta.1` for prereleases or `v0.1.1` for stable releases.
 5. Let GitHub Actions publish to npm using the correct dist-tag.
 6. Publish matching GitHub release notes.
 
@@ -67,7 +67,7 @@ Set this repository secret for automated npm publishing:
 
 - `NPM_TOKEN`
 
-The release workflow publishes prerelease tags like `v0.1.1-beta.0` to the npm `beta` dist-tag, stable tags like `v0.1.1` to `latest`, and creates matching GitHub release notes automatically.
+The release workflow publishes prerelease tags like `v0.1.1-beta.1` to the npm `beta` dist-tag, stable tags like `v0.1.1` to `latest`, and creates matching GitHub release notes automatically.
 
 ## License
 
