@@ -21,9 +21,33 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm publish --provenance
+      - name: Derive release metadata
+        id: meta
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [[ "$version" == *-* ]]; then
+            prerelease_part="${version#*-}"
+            dist_tag="${prerelease_part%%.*}"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            dist_tag="latest"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$dist_tag" >> "$GITHUB_OUTPUT"
+      - name: Ensure tag matches package version
+        shell: bash
+        run: |
+          package_version=$(node -p "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version")
+          if [[ "$package_version" != "${{ steps.meta.outputs.version }}" ]]; then
+            echo "Tag version ${{ steps.meta.outputs.version }} does not match package.json version $package_version" >&2
+            exit 1
+          fi
+      - run: npm publish --tag "${{ steps.meta.outputs.dist_tag }}" --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          prerelease: ${{ steps.meta.outputs.prerelease }}
