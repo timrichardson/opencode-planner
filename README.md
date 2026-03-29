@@ -29,23 +29,6 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 }
 ```
 
-You can also customize the `plan` agent in the same config. If you set `agent.plan.prompt`, it replaces the plugin's base planning prompt, so this is a good place to add repo-specific planning rules or a dedicated model with a specific reasoning level:
-
-```json
-{
-  "plugin": ["opencode-planner@beta"],
-  "agent": {
-    "plan": {
-      "model": "openai/gpt-5.4",
-      "reasoningEffort": "high",
-      "prompt": "Before writing the plan, inspect the current architecture, identify likely touched files, and call out test coverage gaps. Prefer phased plans with explicit validation steps."
-    }
-  }
-}
-```
-
-This replaces the plugin's base planning prompt. The plugin still injects a separate runtime planner reminder to keep the agent in planning mode.
-
 ## What it does
 
 - adds a `plan` agent intended for design and implementation planning
