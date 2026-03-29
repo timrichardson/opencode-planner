@@ -76,7 +76,7 @@ The tool returns:
 
 ## Auto-updates
 
-OpenCode installs npm plugins automatically. During the prerelease phase, `opencode-planner@beta` gives the smoothest update path for most users.
+OpenCode installs and updates npm plugins automatically. During the prerelease phase, `opencode-planner@beta` gives the smoothest update path for most users.
 
 For this package's current prerelease phase, use `opencode-planner@beta` instead of `@latest`.
 
