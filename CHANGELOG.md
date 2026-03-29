@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1-beta.2
+
+- test GitHub Actions release publishing via npm Trusted Publishing
+
 ## 0.1.1-beta.1
 
 - mark npm publishes as public so first-time prerelease publication works with provenance enabled
