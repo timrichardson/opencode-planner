@@ -1,0 +1,33 @@
+{
+  "name": "opencode-planner",
+  "version": "0.1.0",
+  "description": "OpenCode plugin that adds a dedicated planning agent with read-only planning constraints.",
+  "type": "module",
+  "author": "Tim Richardson",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "planning",
+    "agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timrichardson/opencode-planner.git"
+  },
+  "homepage": "https://github.com/timrichardson/opencode-planner#readme",
+  "bugs": {
+    "url": "https://github.com/timrichardson/opencode-planner/issues"
+  },
+  "license": "MIT"
+}
