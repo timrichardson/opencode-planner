@@ -20,10 +20,18 @@ After review, the agent can hand back to implementation mode by calling `plan_ex
 
 Repository: <https://github.com/timrichardson/opencode-planner>
 
+## Getting started
+1. Install plugin, launch opencode
+2. tab to Plan agent
+3. make a plan
+4. when the LLM considers the plan is complete, it will invoke your editor or PlanNotator will be invoked. PlanNotator has priority.
+5. add comments to the plan, save and exit the editor (you can also write "approved" although no edits should mean that as well)
+6. the Plan agent will react to chagnes you made, then you iterate. Or else, it says it is ready to implement. Exit Plan agent and tell the Build agent to implement.
+
 ## Commands added
-/edit-plan: open plan in editor as configured (this also happens automatically when opencode calls submit_plan tool)
-/plan-prompt: shows the plugin's prompt, as a starting point for customisation
-/planner-config: shows how it determines which editor is used because there are three possible env vars.
+* `/edit-plan`: open plan in editor as configured (this also happens automatically when opencode calls submit_plan tool)
+* `/plan-prompt`: shows the plugin's prompt, as a starting point for customisation
+* `/planner-config`: shows how it determines which editor is used because there are three possible env vars.
 
 
 ### Rationale
