@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- promote `opencode-planner` from beta to its stable release line
+- keep the npm `beta` dist-tag aligned with the current stable release until the next prerelease cycle
+
 ## 0.1.1-beta.11
 
 - add planner-specific `PLAN_VISUAL` support for external plan review editor selection

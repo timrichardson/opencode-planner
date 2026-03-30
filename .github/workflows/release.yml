@@ -45,6 +45,9 @@ jobs:
             exit 1
           fi
       - run: npm publish --access public --tag "${{ steps.meta.outputs.dist_tag }}"
+      - name: Mirror stable release to beta dist-tag
+        if: steps.meta.outputs.dist_tag == 'latest'
+        run: npm dist-tag add "opencode-planner@${{ steps.meta.outputs.version }}" beta
       - name: Create GitHub release
         shell: bash
         env:

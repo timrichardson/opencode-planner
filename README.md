@@ -14,19 +14,19 @@ Add this to `opencode.json`:
 
 ```json
 {
-  "plugin": ["opencode-planner@beta"]
+  "plugin": ["opencode-planner"]
 }
 ```
 
 Then restart OpenCode.
 
-`beta` is the recommended install channel until the package has a stable release. This keeps prereleases off `latest`.
+`opencode-planner` now publishes stable releases to `latest`, so the unqualified package name is the recommended install channel.
 
 If you want reproducible installs instead of automatic plugin refreshes, pin an exact version:
 
 ```json
 {
-  "plugin": ["opencode-planner@0.1.1-beta.1"]
+  "plugin": ["opencode-planner@0.2.0"]
 }
 ```
 
@@ -124,12 +124,12 @@ If you edit the plan after calling `submit_plan`, the plugin treats that as a ne
 
 ## Auto-updates
 
-OpenCode installs and updates npm plugins automatically. During the beta phase of this plugin, `opencode-planner@beta` gives the smoothest update path for most users.
+OpenCode installs and updates npm plugins automatically. `opencode-planner` tracks `@latest` by default, which is the recommended channel for most users.
 
-For this package's current prerelease phase, use `opencode-planner@beta` instead of `@latest`.
+The `beta` dist-tag currently points at the same release as `latest`. That keeps existing beta installs on the current stable build until a future prerelease line resumes.
 
-- `@beta`: pick up new prerelease plugin versions on restart without opting into a future stable channel
-- `@latest`: reserved for stable releases
+- `@latest`: pick up stable plugin versions on restart
+- `@beta`: currently follows the same version as `@latest`
 - exact version pin: stay fixed until the config is changed deliberately
 
 If OpenCode appears to keep an older cached plugin, clear the cache under `~/.cache/opencode/` and restart.
