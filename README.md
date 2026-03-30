@@ -104,6 +104,12 @@ Compatible examples:
 
 These work because they open a separate editor process and do not try to take over the OpenCode TUI terminal.
 
+If you use gVim and want a larger planner window, you can set geometry directly, for example:
+
+- `PLAN_VISUAL="gvim -f -geometry 120x100"`
+
+That opens gVim in the foreground with a window that is roughly 120 columns wide and 100 lines tall.
+
 Bare terminal editors like `vim` or `nvim` are not sufficient on their own because the plugin does not hand the current TUI terminal over to the editor. If you want to use them, wrap them in a terminal-emulator command that opens a new window and waits for it to exit.
 
 Examples:
