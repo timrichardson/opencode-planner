@@ -7,6 +7,12 @@ import process from "node:process"
 const agent = "plan"
 const root = ".opencode/plans"
 const defaultPlanTarget = file("<session-id>")
+const editPlanCommand = {
+  description: "Reopen the current plan in your editor",
+  agent,
+  template:
+    "Reopen the current markdown plan in the configured external editor by calling the edit_plan tool. If the tool reports that the user changed the plan externally, treat those edits as review feedback, summarize what changed, and continue planning from the updated plan.",
+}
 
 function truthy(key) {
   const value = process.env[key]?.toLowerCase()
@@ -60,7 +66,7 @@ function promptDisclosure(target = defaultPlanTarget) {
     "This reminder is injected by the plugin at runtime to keep the `plan` agent in planner mode and enforce the review handoff workflow. It is plugin-controlled and is not customized through `agent.plan.prompt`.",
     note(target.replace(`${root}/`, "").replace(/\.md$/, "")),
     "## How to customize it",
-    "Only the Base prompt above is replaced by `agent.plan.prompt`. Add this to `opencode.json` to replace that base prompt:",
+    "Only the Base prompt above is replaced by `agent.plan.prompt`. Add this to `opencode.jsonc` to replace that base prompt:",
     [
       "```json",
       "{",
@@ -353,6 +359,10 @@ export default async function plannerPlugin() {
     },
     async config(cfg) {
       cfg.agent ??= {}
+      cfg.command = {
+        "edit-plan": editPlanCommand,
+        ...cfg.command,
+      }
       cfg.agent[agent] = mode(cfg.agent[agent])
       cfg.agent.general = restrictPlannerSubagent(cfg.agent.general)
       cfg.agent.explore = restrictPlannerSubagent(cfg.agent.explore)

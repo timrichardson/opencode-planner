@@ -1,9 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- add an `/edit-plan` command that routes to the `plan` agent and reuses the existing `edit_plan` tool flow
+- document `/edit-plan` and surface it in the runtime debug output
+
 ## 0.2.0
 
-- promote `opencode-planner` from beta to its stable release line
-- keep the npm `beta` dist-tag aligned with the current stable release until the next prerelease cycle
+- promote `opencode-planner` to its stable release line
+- publish stable releases to npm `latest`
 
 ## 0.1.1-beta.11
 

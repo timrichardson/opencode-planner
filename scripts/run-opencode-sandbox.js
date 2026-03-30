@@ -8,7 +8,11 @@ import { fileURLToPath } from "node:url"
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, "..")
 const localPlanner = `file://${path.join(root, "index.js")}`
-const globalConfigPath = path.join(os.homedir(), ".config", "opencode", "opencode.json")
+const globalConfigDir = path.join(os.homedir(), ".config", "opencode")
+const globalConfigPaths = [
+  path.join(globalConfigDir, "opencode.jsonc"),
+  path.join(globalConfigDir, "opencode.json"),
+]
 
 function usage() {
   console.log(`Usage: node scripts/run-opencode-sandbox.js [--without-plannotator] [opencode args...]
@@ -24,16 +28,80 @@ function normalizePlugin(entry) {
 }
 
 function parseLooseJSON(text) {
-  return JSON.parse(
-    text
-      .replace(/^\uFEFF/, "")
-      .replace(/,\s*([}\]])/g, "$1"),
-  )
+  const source = text.replace(/^\uFEFF/, "")
+  let out = ""
+  let inString = false
+  let quote = ""
+  let escaped = false
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i]
+    const next = source[i + 1]
+
+    if (inString) {
+      out += char
+      if (escaped) {
+        escaped = false
+        continue
+      }
+      if (char === "\\") {
+        escaped = true
+        continue
+      }
+      if (char === quote) {
+        inString = false
+        quote = ""
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inString = true
+      quote = char
+      out += char
+      continue
+    }
+
+    if (char === "/" && next === "/") {
+      i += 2
+      while (i < source.length && source[i] !== "\n") i += 1
+      if (i < source.length) out += "\n"
+      continue
+    }
+
+    if (char === "/" && next === "*") {
+      i += 2
+      while (i < source.length && !(source[i] === "*" && source[i + 1] === "/")) i += 1
+      i += 1
+      continue
+    }
+
+    out += char
+  }
+
+  return JSON.parse(out.replace(/,\s*([}\]])/g, "$1"))
 }
 
 function keepWithoutPlannotator(entry) {
   const id = normalizePlugin(entry)
   return id !== "@plannotator/opencode@latest" && id !== "@plannotator/opencode"
+}
+
+async function readGlobalConfig() {
+  for (const file of globalConfigPaths) {
+    try {
+      return parseLooseJSON(await fs.readFile(file, "utf8"))
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        continue
+      }
+      throw error
+    }
+  }
+
+  throw new Error(
+    `No OpenCode config found. Checked: ${globalConfigPaths.map((file) => `\`${file}\``).join(", ")}`,
+  )
 }
 
 const rawArgs = process.argv.slice(2)
@@ -45,7 +113,7 @@ if (rawArgs.includes("-h") || rawArgs.includes("--help")) {
 const stripPlannotator = rawArgs.includes("--without-plannotator")
 const opencodeArgs = rawArgs.filter((arg) => arg !== "--without-plannotator")
 
-const baseConfig = parseLooseJSON(await fs.readFile(globalConfigPath, "utf8"))
+const baseConfig = await readGlobalConfig()
 const plugin = (baseConfig.plugin ?? []).filter((entry) => !stripPlannotator || keepWithoutPlannotator(entry))
 
 const filtered = plugin.filter((entry) => normalizePlugin(entry) !== localPlanner)

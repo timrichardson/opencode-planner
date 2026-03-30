@@ -49,5 +49,5 @@ Use `npm test` for normal code changes. Use the runtime debug and sandbox comman
 ## Notes For Agents
 
 - This repo currently has no dedicated lint or format script; preserve the existing style manually.
-- The package is published from version tags, and the README documents the prerelease `@beta` install path.
+- The package is published from version tags, and the README documents the stable install path.
 - Changes around `plan_exit` should preserve the current runtime contract: only mention or allow it when experimental plan mode is enabled and the client is `cli`.

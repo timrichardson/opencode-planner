@@ -27,15 +27,10 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           if [[ "$version" == *-* ]]; then
-            prerelease_part="${version#*-}"
-            dist_tag="${prerelease_part%%.*}"
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          else
-            dist_tag="latest"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Only stable release tags are supported: $version" >&2
+            exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "dist_tag=$dist_tag" >> "$GITHUB_OUTPUT"
       - name: Ensure tag matches package version
         shell: bash
         run: |
@@ -44,25 +39,15 @@ jobs:
             echo "Tag version ${{ steps.meta.outputs.version }} does not match package.json version $package_version" >&2
             exit 1
           fi
-      - run: npm publish --access public --tag "${{ steps.meta.outputs.dist_tag }}"
-      - name: Mirror stable release to beta dist-tag
-        if: steps.meta.outputs.dist_tag == 'latest'
-        run: npm dist-tag add "opencode-planner@${{ steps.meta.outputs.version }}" beta
+      - run: npm publish --access public --tag latest
       - name: Create GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "GitHub release for $GITHUB_REF_NAME already exists."
             exit 0
           fi
 
-          args=(release create "$GITHUB_REF_NAME" --verify-tag --generate-notes)
-
-          if [[ "$PRERELEASE" == "true" ]]; then
-            args+=(--prerelease)
-          fi
-
-          gh "${args[@]}"
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes

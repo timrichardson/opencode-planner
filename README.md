@@ -1,16 +1,27 @@
 # opencode-planner
 
-`opencode-planner` is an OpenCode plugin that adds a dedicated `plan` agent for read-only planning before implementation. Its functionality is an emulation of the experimental plan agent (it has no hard dependency on EXPERIMENTAL_PLAN_MODE=1, altough that setting enables a tool called plan_exit which this plugin will use if available). That is, it likes to use sub-agents and a structured approach to planning, asks clarifying questions, and finally it produces a markdown file. 
+`opencode-planner` is an OpenCode plugin that adds a dedicated `plan` agent for read-only planning before implementation. Its functionality is an emulation of the experimental plan agent (it has no hard dependency on `EXPERIMENTAL_PLAN_MODE=1`, although that setting enables a tool called plan_exit which this plugin will use if available). That is, it likes to use sub-agents and a structured approach to planning, asks clarifying questions, and finally it produces a markdown file. 
 
-When Plannotator is installed, it can submit the finished plan for richer review. Without Plannotator, it can open the plan in your configured external editor for review.
+
+When Plannotator is installed, it can submit the finished plan for richer review. 
+
+Without Plannotator, it can open the plan in your configured external editor for review. A new command `/edit-plan` will open the plan in the editor if needed. 
+
+In either case, changes made while editing will trigger a revision of the plan. 
+
 
 After review, the agent can hand back to implementation mode by calling `plan_exit` only when the host runtime exposes that tool. In current OpenCode builds, that means experimental plan mode must be enabled and the client must be `cli`. If it's not enabled, you need to prompt the build agent to start work.
 
 Repository: <https://github.com/timrichardson/opencode-planner>
 
+
+### Rationale
+Experimental plan mode is not a focus for the core devs, who point out that a plugin can do it, which I set out to prove, at least as a concept. This plugin means, at least for me, a development path for a stronger Plan agent independent of core OpenCode priorities.
+
+
 ## Install for OpenCode
 
-Add this to `opencode.json`:
+Add this to `opencode.jsonc` (or `opencode.json`):
 
 ```json
 {
@@ -40,9 +51,10 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - denies `submit_plan`, `edit_plan`, and `plan_exit` to the built-in `general` and `explore` subagents so review and implementation handoff stay on the primary `plan` agent
 - exposes a `plan_prompt` tool so the `plan` agent can reveal the plugin's prompt basis for customization
 - exposes an `edit_plan` tool so the `plan` agent can open the current plan in the configured external editor
+- registers an `/edit-plan` command that routes to the `plan` agent and asks it to call `edit_plan`
 - uses `submit_plan` for review when available, otherwise falls back to external-editor review
 - keeps the agent in planner mode if the plan file changed after `submit_plan`; the revised plan must be resubmitted before `plan_exit`
-- can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime
+- can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime (because the plan_exit tool is only available with `EXPERIMENTAL_PLAN_MODE` enabled; se OpenCode docs for Experiments)
 
 ## Customize the plan agent
 
@@ -79,6 +91,16 @@ The tool returns:
 - a short note explaining that the final runtime prompt can still differ because of user config, other plugins, or runtime tool availability like `plan_exit`
 
 ## Review Without Plannotator
+
+In the TUI, you can use `/edit-plan` as a shortcut to ask the `plan` agent to reopen the current plan in your configured external editor. This routes through the existing `edit_plan` tool behavior.
+
+Example:
+
+```text
+/edit-plan
+```
+
+This expects the current session to already have a plan file, and it still requires `PLAN_VISUAL`, `VISUAL`, or `EDITOR` to launch a blocking editor command.
 
 If `submit_plan` is not registered by the runtime, the plugin's `edit_plan` tool gives the `plan` agent a fallback way to open the current plan in your configured external editor.
 
@@ -126,10 +148,7 @@ If you edit the plan after calling `submit_plan`, the plugin treats that as a ne
 
 OpenCode installs and updates npm plugins automatically. `opencode-planner` tracks `@latest` by default, which is the recommended channel for most users.
 
-The `beta` dist-tag currently points at the same release as `latest`. That keeps existing beta installs on the current stable build until a future prerelease line resumes.
-
 - `@latest`: pick up stable plugin versions on restart
-- `@beta`: currently follows the same version as `@latest`
 - exact version pin: stay fixed until the config is changed deliberately
 
 If OpenCode appears to keep an older cached plugin, clear the cache under `~/.cache/opencode/` and restart.
@@ -162,8 +181,8 @@ It starts OpenCode with an isolated temporary home/config, keeps the local repo 
 1. Update `CHANGELOG.md`.
 2. Bump the version in `package.json`.
 3. Commit the release.
-4. Create and push a git tag like `v0.1.1-beta.1` for prereleases or `v0.1.1` for stable releases.
-5. Let GitHub Actions publish to npm using the correct dist-tag.
+4. Create and push a git tag like `v0.2.0` for the release.
+5. Let GitHub Actions publish to npm `latest`.
 6. Publish matching GitHub release notes.
 
 The repository includes GitHub Actions templates for CI and npm publishing from version tags.
@@ -179,7 +198,7 @@ Configure npm Trusted Publishing for this package:
    - Repository: `opencode-planner`
    - Workflow filename: `release.yml`
 
-The release workflow publishes prerelease tags like `v0.1.1-beta.1` to the npm `beta` dist-tag, stable tags like `v0.1.1` to `latest`, and creates matching GitHub release notes automatically.
+The release workflow publishes stable tags like `v0.2.0` to npm `latest` and creates matching GitHub release notes automatically.
 
 Trusted Publishing uses GitHub OIDC and does not require an `NPM_TOKEN` secret for publishing.
 

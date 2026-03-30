@@ -59,6 +59,9 @@ test("config hook registers the plan agent without plan_exit by default", async 
       assert.equal(cfg.agent.plan.permission.plan_prompt, "allow")
       assert.equal(cfg.agent.plan.permission.submit_plan, "allow")
       assert.equal(cfg.agent.plan.permission.plan_exit, undefined)
+      assert.equal(cfg.command["edit-plan"].description, "Reopen the current plan in your editor")
+      assert.equal(cfg.command["edit-plan"].agent, "plan")
+      assert.match(cfg.command["edit-plan"].template, /calling the edit_plan tool/i)
       assert.match(cfg.agent.plan.prompt, /if the submit_plan tool is available/i)
       assert.match(cfg.agent.plan.prompt, /call edit_plan to open the markdown plan/i)
       assert.match(cfg.agent.plan.prompt, /treat that as review feedback on the plan/i)
@@ -66,6 +69,29 @@ test("config hook registers the plan agent without plan_exit by default", async 
       assert.doesNotMatch(cfg.agent.plan.prompt, /plan_exit/)
     },
   )
+})
+
+test("config hook adds edit-plan without overwriting user commands", async () => {
+  const plugin = await plannerPlugin()
+  const cfg = {
+    command: {
+      custom: {
+        template: "Do something custom.",
+      },
+      "edit-plan": {
+        template: "Use my custom edit-plan flow.",
+        description: "Custom edit plan",
+        agent: "general",
+      },
+    },
+  }
+
+  await plugin.config(cfg)
+
+  assert.equal(cfg.command.custom.template, "Do something custom.")
+  assert.equal(cfg.command["edit-plan"].template, "Use my custom edit-plan flow.")
+  assert.equal(cfg.command["edit-plan"].description, "Custom edit plan")
+  assert.equal(cfg.command["edit-plan"].agent, "general")
 })
 
 test("config hook lets users replace the plugin prompt", async () => {

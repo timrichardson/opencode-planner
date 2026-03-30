@@ -36,10 +36,12 @@ const config = runJSON(["debug", "config"])
 const plan = runJSON(["debug", "agent", "plan"])
 
 const plugins = config.plugin ?? []
+const commands = config.command ?? {}
 const permissions = plan.permission ?? []
 const tools = plan.tools ?? {}
 const prompt = plan.prompt ?? ""
 
+const editPlanCommandConfigured = Boolean(commands["edit-plan"])
 const planPromptAllowed = hasAllowedPermission("plan_prompt", permissions)
 const editPlanAllowed = hasAllowedPermission("edit_plan", permissions)
 const planExitAllowed = hasAllowedPermission("plan_exit", permissions)
@@ -54,6 +56,7 @@ const promptMentionsPlanExit = prompt.includes("plan_exit")
 console.log("OpenCode plan runtime check")
 console.log("")
 line("Repo plugin loaded", usingLocalPlugin ? "yes" : "no")
+line("/edit-plan command", editPlanCommandConfigured ? "yes" : "no")
 line("plan_prompt allowed", planPromptAllowed ? "yes" : "no")
 line("plan_prompt tool", planPromptTool ? "yes" : "no")
 line("edit_plan allowed", editPlanAllowed ? "yes" : "no")
@@ -77,6 +80,9 @@ for (const plugin of plugins) {
 console.log("\nAssessment:")
 if (!usingLocalPlugin) {
   console.log(`- OpenCode is not using the local repo plugin at ${localPlugin}.`)
+}
+if (!editPlanCommandConfigured) {
+  console.log("- /edit-plan is not configured in the resolved command list.")
 }
 if (!planPromptTool) {
   console.log("- plan_prompt is not registered as a runtime tool.")
