@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - add an `/edit-plan` command that routes to the `plan` agent and reuses the existing `edit_plan` tool flow
 - document `/edit-plan` and surface it in the runtime debug output

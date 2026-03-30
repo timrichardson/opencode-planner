@@ -37,7 +37,7 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 
 ```json
 {
-  "plugin": ["opencode-planner@0.2.0"]
+  "plugin": ["opencode-planner@0.3.0"]
 }
 ```
 
@@ -181,7 +181,7 @@ It starts OpenCode with an isolated temporary home/config, keeps the local repo 
 1. Update `CHANGELOG.md`.
 2. Bump the version in `package.json`.
 3. Commit the release.
-4. Create and push a git tag like `v0.2.0` for the release.
+4. Create and push a git tag like `v0.3.0` for the release.
 5. Let GitHub Actions publish to npm `latest`.
 6. Publish matching GitHub release notes.
 
@@ -198,7 +198,7 @@ Configure npm Trusted Publishing for this package:
    - Repository: `opencode-planner`
    - Workflow filename: `release.yml`
 
-The release workflow publishes stable tags like `v0.2.0` to npm `latest` and creates matching GitHub release notes automatically.
+The release workflow publishes stable tags like `v0.3.0` to npm `latest` and creates matching GitHub release notes automatically.
 
 Trusted Publishing uses GitHub OIDC and does not require an `NPM_TOKEN` secret for publishing.
 

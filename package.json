@@ -1,6 +1,6 @@
 {
   "name": "opencode-planner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Experimental OpenCode plugin that adds a dedicated planning agent with read-only planning constraints.",
   "type": "module",
   "author": "Tim Richardson",
