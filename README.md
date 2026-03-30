@@ -1,7 +1,11 @@
 # opencode-planner
 
-`opencode-planner` is an OpenCode plugin that adds a dedicated `plan` agent for read-only planning before implementation. Its functionality is an emulation of the experimental plan agent (it has no hard dependency on `EXPERIMENTAL_PLAN_MODE=1`, although that setting enables a tool called plan_exit which this plugin will use if available). That is, it likes to use sub-agents and a structured approach to planning, asks clarifying questions, and finally it produces a markdown file. 
+`opencode-planner` is an OpenCode plugin that 
+* emulates Experimental Plan Mode
+* integrates external review and feedback editing of the plan via your choice of editor, or Plannotator
 
+It adds a dedicated `plan` agent for read-only planning before implementation. 
+Its functionality is an emulation of the experimental plan agent (it has no hard dependency on `EXPERIMENTAL_PLAN_MODE=1`, although that setting enables a tool called plan_exit which this plugin will use if available). That is, it likes to use sub-agents and a structured approach to planning, asks clarifying questions, and finally it produces a markdown file. 
 
 When Plannotator is installed, it can submit the finished plan for richer review. 
 
@@ -9,10 +13,17 @@ Without Plannotator, it can open the plan in your configured external editor for
 
 In either case, changes made while editing will trigger a revision of the plan. 
 
+You can easily tweak the prompt, in fact /plan_prompt gives you the plugin's prompt as a starting point for customisation. 
+
 
 After review, the agent can hand back to implementation mode by calling `plan_exit` only when the host runtime exposes that tool. In current OpenCode builds, that means experimental plan mode must be enabled and the client must be `cli`. If it's not enabled, you need to prompt the build agent to start work.
 
 Repository: <https://github.com/timrichardson/opencode-planner>
+
+## Commands added
+/edit-plan: open plan in editor as configured (this also happens automatically when opencode calls submit_plan tool)
+/plan-prompt: shows the plugin's prompt, as a starting point for customisation
+/planner-config: shows how it determines which editor is used because there are three possible env vars.
 
 
 ### Rationale
