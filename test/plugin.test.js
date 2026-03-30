@@ -56,12 +56,16 @@ test("config hook registers the plan agent without plan_exit by default", async 
       assert.equal(cfg.agent.plan.mode, "primary")
       assert.equal(cfg.agent.plan.permission.bash, "deny")
       assert.equal(cfg.agent.plan.permission.edit_plan, "allow")
+      assert.equal(cfg.agent.plan.permission.planner_config, "allow")
       assert.equal(cfg.agent.plan.permission.plan_prompt, "allow")
       assert.equal(cfg.agent.plan.permission.submit_plan, "allow")
       assert.equal(cfg.agent.plan.permission.plan_exit, undefined)
       assert.equal(cfg.command["edit-plan"].description, "Reopen the current plan in your editor")
       assert.equal(cfg.command["edit-plan"].agent, "plan")
       assert.match(cfg.command["edit-plan"].template, /calling the edit_plan tool/i)
+      assert.equal(cfg.command["planner-config"].description, "Show planner configuration details")
+      assert.equal(cfg.command["planner-config"].agent, "plan")
+      assert.match(cfg.command["planner-config"].template, /call the planner_config tool/i)
       assert.match(cfg.agent.plan.prompt, /if the submit_plan tool is available/i)
       assert.match(cfg.agent.plan.prompt, /call edit_plan to open the markdown plan/i)
       assert.match(cfg.agent.plan.prompt, /treat that as review feedback on the plan/i)
@@ -71,7 +75,7 @@ test("config hook registers the plan agent without plan_exit by default", async 
   )
 })
 
-test("config hook adds edit-plan without overwriting user commands", async () => {
+test("config hook adds planner commands without overwriting user commands", async () => {
   const plugin = await plannerPlugin()
   const cfg = {
     command: {
@@ -83,6 +87,11 @@ test("config hook adds edit-plan without overwriting user commands", async () =>
         description: "Custom edit plan",
         agent: "general",
       },
+      "planner-config": {
+        template: "Use my custom planner-config flow.",
+        description: "Custom planner config",
+        agent: "general",
+      },
     },
   }
 
@@ -92,6 +101,9 @@ test("config hook adds edit-plan without overwriting user commands", async () =>
   assert.equal(cfg.command["edit-plan"].template, "Use my custom edit-plan flow.")
   assert.equal(cfg.command["edit-plan"].description, "Custom edit plan")
   assert.equal(cfg.command["edit-plan"].agent, "general")
+  assert.equal(cfg.command["planner-config"].template, "Use my custom planner-config flow.")
+  assert.equal(cfg.command["planner-config"].description, "Custom planner config")
+  assert.equal(cfg.command["planner-config"].agent, "general")
 })
 
 test("config hook lets users replace the plugin prompt", async () => {
@@ -176,12 +188,113 @@ test("config hook denies review handoff tools for planner subagents", async () =
       await plugin.config(cfg)
 
       assert.equal(cfg.agent.general.permission.edit_plan, "deny")
+      assert.equal(cfg.agent.general.permission.planner_config, "deny")
       assert.equal(cfg.agent.general.permission.plan_exit, "deny")
       assert.equal(cfg.agent.general.permission.submit_plan, "deny")
       assert.equal(cfg.agent.general.permission.webfetch, "deny")
       assert.equal(cfg.agent.explore.permission.edit_plan, "deny")
+      assert.equal(cfg.agent.explore.permission.planner_config, "deny")
       assert.equal(cfg.agent.explore.permission.plan_exit, "deny")
       assert.equal(cfg.agent.explore.permission.submit_plan, "deny")
+    },
+  )
+})
+
+test("planner_config reports editor precedence", async () => {
+  const cases = [
+    {
+      env: {
+        PLAN_VISUAL: undefined,
+        VISUAL: undefined,
+        EDITOR: "code --wait",
+      },
+      source: "EDITOR",
+      command: "code --wait",
+    },
+    {
+      env: {
+        PLAN_VISUAL: undefined,
+        VISUAL: "gvim -f",
+        EDITOR: "code --wait",
+      },
+      source: "VISUAL",
+      command: "gvim -f",
+    },
+    {
+      env: {
+        PLAN_VISUAL: "gedit --wait",
+        VISUAL: "gvim -f",
+        EDITOR: "code --wait",
+      },
+      source: "PLAN_VISUAL",
+      command: "gedit --wait",
+    },
+  ]
+
+  for (const entry of cases) {
+    await withEnv(entry.env, async () => {
+      const plugin = await plannerPlugin()
+      const output = await plugin.tool.planner_config.execute(
+        {},
+        {
+          sessionID: "ses_config",
+        },
+      )
+
+      assert.ok(output.includes(`- Selected source: \`${entry.source}\``))
+      assert.ok(output.includes(`- Selected command: \`${entry.command}\``))
+      assert.match(output, /submit_plan: allowed by the `plan` agent and required for Plannotator review/i)
+      assert.match(output, /edit_plan: allowed by the `plan` agent as the fallback local-editor review tool/i)
+      assert.match(output, /Precedence: `PLAN_VISUAL` -> `VISUAL` -> `EDITOR`/)
+      assert.match(output, /Current session plan path: `\.opencode\/plans\/ses_config\.md`/)
+    })
+  }
+})
+
+test("planner_config reports when no editor is configured", async () => {
+  await withEnv(
+    {
+      PLAN_VISUAL: undefined,
+      VISUAL: undefined,
+      EDITOR: undefined,
+    },
+    async () => {
+      const plugin = await plannerPlugin()
+      const output = await plugin.tool.planner_config.execute(
+        {},
+        {
+          sessionID: "ses_config",
+        },
+      )
+
+      assert.match(output, /PLAN_VISUAL: <unset>/)
+      assert.match(output, /VISUAL: <unset>/)
+      assert.match(output, /EDITOR: <unset>/)
+      assert.match(output, /Selected source: none/)
+      assert.match(output, /Selected command: <unset>/)
+    },
+  )
+})
+
+test("planner_config reports plan_exit expectation from runtime flags", async () => {
+  await withEnv(
+    {
+      OPENCODE_EXPERIMENTAL: undefined,
+      OPENCODE_EXPERIMENTAL_PLAN_MODE: "1",
+      OPENCODE_CLIENT: "cli",
+    },
+    async () => {
+      const plugin = await plannerPlugin()
+      const output = await plugin.tool.planner_config.execute(
+        {},
+        {
+          sessionID: "ses_config",
+        },
+      )
+
+      assert.match(output, /OPENCODE_EXPERIMENTAL_PLAN_MODE: `1`/)
+      assert.match(output, /OPENCODE_CLIENT: `cli`/)
+      assert.match(output, /plan_exit expected: yes/)
     },
   )
 })

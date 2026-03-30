@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- add a `planner_config` diagnostic tool and `/planner-config` command for inspecting planner runtime and editor configuration
+
 ## 0.3.0
 
 - add an `/edit-plan` command that routes to the `plan` agent and reuses the existing `edit_plan` tool flow

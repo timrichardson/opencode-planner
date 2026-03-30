@@ -42,12 +42,15 @@ const tools = plan.tools ?? {}
 const prompt = plan.prompt ?? ""
 
 const editPlanCommandConfigured = Boolean(commands["edit-plan"])
+const plannerConfigCommandConfigured = Boolean(commands["planner-config"])
 const planPromptAllowed = hasAllowedPermission("plan_prompt", permissions)
 const editPlanAllowed = hasAllowedPermission("edit_plan", permissions)
+const plannerConfigAllowed = hasAllowedPermission("planner_config", permissions)
 const planExitAllowed = hasAllowedPermission("plan_exit", permissions)
 const submitPlanAllowed = hasAllowedPermission("submit_plan", permissions)
 const planPromptTool = Boolean(tools.plan_prompt)
 const editPlanTool = Boolean(tools.edit_plan)
+const plannerConfigTool = Boolean(tools.planner_config)
 const planExitTool = Boolean(tools.plan_exit)
 const submitPlanTool = Boolean(tools.submit_plan)
 const usingLocalPlugin = plugins.includes(localPlugin)
@@ -57,10 +60,13 @@ console.log("OpenCode plan runtime check")
 console.log("")
 line("Repo plugin loaded", usingLocalPlugin ? "yes" : "no")
 line("/edit-plan command", editPlanCommandConfigured ? "yes" : "no")
+line("/planner-config command", plannerConfigCommandConfigured ? "yes" : "no")
 line("plan_prompt allowed", planPromptAllowed ? "yes" : "no")
 line("plan_prompt tool", planPromptTool ? "yes" : "no")
 line("edit_plan allowed", editPlanAllowed ? "yes" : "no")
 line("edit_plan tool", editPlanTool ? "yes" : "no")
+line("planner_config allowed", plannerConfigAllowed ? "yes" : "no")
+line("planner_config tool", plannerConfigTool ? "yes" : "no")
 line("submit_plan allowed", submitPlanAllowed ? "yes" : "no")
 line("plan_exit allowed", planExitAllowed ? "yes" : "no")
 line("submit_plan tool", submitPlanTool ? "yes" : "no")
@@ -84,11 +90,17 @@ if (!usingLocalPlugin) {
 if (!editPlanCommandConfigured) {
   console.log("- /edit-plan is not configured in the resolved command list.")
 }
+if (!plannerConfigCommandConfigured) {
+  console.log("- /planner-config is not configured in the resolved command list.")
+}
 if (!planPromptTool) {
   console.log("- plan_prompt is not registered as a runtime tool.")
 }
 if (!editPlanTool) {
   console.log("- edit_plan is not registered as a runtime tool.")
+}
+if (!plannerConfigTool) {
+  console.log("- planner_config is not registered as a runtime tool.")
 }
 if (!submitPlanTool) {
   console.log("- submit_plan is not registered as a runtime tool.")

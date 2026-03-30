@@ -13,6 +13,12 @@ const editPlanCommand = {
   template:
     "Reopen the current markdown plan in the configured external editor by calling the edit_plan tool. If the tool reports that the user changed the plan externally, treat those edits as review feedback, summarize what changed, and continue planning from the updated plan.",
 }
+const plannerConfigCommand = {
+  description: "Show planner configuration details",
+  agent,
+  template:
+    "Call the planner_config tool for the current session and return its output so the user can inspect planner tool availability, editor resolution, and relevant runtime flags.",
+}
 
 function truthy(key) {
   const value = process.env[key]?.toLowerCase()
@@ -136,14 +142,38 @@ function restrictPlannerSubagent(input = {}) {
     ...input,
     permission: merge(input?.permission, {
       edit_plan: "deny",
+      planner_config: "deny",
       plan_exit: "deny",
       submit_plan: "deny",
     }),
   }
 }
 
+function editorConfig() {
+  const variables = ["PLAN_VISUAL", "VISUAL", "EDITOR"].map((key) => {
+    const value = process.env[key]?.trim() ?? ""
+    return {
+      key,
+      value,
+      set: Boolean(value),
+    }
+  })
+
+  const selected = variables.find((entry) => entry.set) ?? null
+
+  return {
+    variables,
+    selected,
+    command: selected?.value ?? "",
+  }
+}
+
 function editorCommand() {
-  return process.env.PLAN_VISUAL?.trim() || process.env.VISUAL?.trim() || process.env.EDITOR?.trim() || ""
+  return editorConfig().command
+}
+
+function formatSetting(value) {
+  return value ? `\`${value}\`` : "<unset>"
 }
 
 function hashPlan(content) {
@@ -284,6 +314,39 @@ async function editPlan(sessionID) {
   ].join("\n")
 }
 
+function plannerConfig(sessionID) {
+  const target = file(sessionID ?? "<session-id>")
+  const permission = mode().permission
+  const editor = editorConfig()
+  const planExitEnabled = hasPlanExit()
+
+  return [
+    "# opencode-planner configuration",
+    "## Planner files",
+    `- Current session plan path: \`${target}\``,
+    `- Default plan path pattern: \`${defaultPlanTarget}\``,
+    "",
+    "## Planner tools",
+    `- plan_prompt: ${permission.plan_prompt === "allow" ? "allowed by the `plan` agent" : "not allowed by the `plan` agent"}`,
+    `- edit_plan: ${permission.edit_plan === "allow" ? "allowed by the `plan` agent as the fallback local-editor review tool" : "not allowed by the `plan` agent"}`,
+    `- planner_config: ${permission.planner_config === "allow" ? "allowed by the `plan` agent" : "not allowed by the `plan` agent"}`,
+    `- submit_plan: ${permission.submit_plan === "allow" ? "allowed by the `plan` agent and required for Plannotator review; availability still depends on the host runtime" : "not allowed by the `plan` agent"}`,
+    `- plan_exit: ${planExitEnabled ? "enabled by the current runtime flags when the host runtime provides it" : "not enabled by the current runtime flags"}`,
+    "",
+    "## Editor resolution",
+    "- Precedence: `PLAN_VISUAL` -> `VISUAL` -> `EDITOR`",
+    ...editor.variables.map((entry) => `- ${entry.key}: ${formatSetting(entry.value)}`),
+    `- Selected source: ${editor.selected ? `\`${editor.selected.key}\`` : "none"}`,
+    `- Selected command: ${formatSetting(editor.command)}`,
+    "",
+    "## Runtime flags",
+    `- OPENCODE_EXPERIMENTAL: ${formatSetting(process.env.OPENCODE_EXPERIMENTAL?.trim() ?? "")}`,
+    `- OPENCODE_EXPERIMENTAL_PLAN_MODE: ${formatSetting(process.env.OPENCODE_EXPERIMENTAL_PLAN_MODE?.trim() ?? "")}`,
+    `- OPENCODE_CLIENT: ${formatSetting(process.env.OPENCODE_CLIENT?.trim() ?? "")}`,
+    `- plan_exit expected: ${planExitEnabled ? "yes" : "no"}`,
+  ].join("\n")
+}
+
 function mode(input = {}) {
   const base = {
     mode: "primary",
@@ -311,6 +374,7 @@ function mode(input = {}) {
       codesearch: "allow",
       batch: "allow",
       edit_plan: "allow",
+      planner_config: "allow",
       plan_prompt: "allow",
       submit_plan: "allow",
       ...(hasPlanExit() ? { plan_exit: "allow" } : {}),
@@ -356,10 +420,18 @@ export default async function plannerPlugin() {
           return editPlan(context.sessionID)
         },
       },
+      planner_config: {
+        description: "Show planner configuration details for the current session",
+        args: {},
+        async execute(_, context) {
+          return plannerConfig(context.sessionID)
+        },
+      },
     },
     async config(cfg) {
       cfg.agent ??= {}
       cfg.command = {
+        "planner-config": plannerConfigCommand,
         "edit-plan": editPlanCommand,
         ...cfg.command,
       }

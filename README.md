@@ -37,7 +37,7 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 
 ```json
 {
-  "plugin": ["opencode-planner@0.3.0"]
+  "plugin": ["opencode-planner@0.3.1"]
 }
 ```
 
@@ -49,9 +49,11 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - lets users replace the plugin's base `plan` prompt with their own `agent.plan.prompt`
 - lets users override agent settings such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`
 - denies `submit_plan`, `edit_plan`, and `plan_exit` to the built-in `general` and `explore` subagents so review and implementation handoff stay on the primary `plan` agent
+- exposes a `planner_config` tool so the `plan` agent can inspect planner-specific runtime and editor configuration
 - exposes a `plan_prompt` tool so the `plan` agent can reveal the plugin's prompt basis for customization
 - exposes an `edit_plan` tool so the `plan` agent can open the current plan in the configured external editor
 - registers an `/edit-plan` command that routes to the `plan` agent and asks it to call `edit_plan`
+- registers a `/planner-config` command that routes to the `plan` agent and asks it to call `planner_config`
 - uses `submit_plan` for review when available, otherwise falls back to external-editor review
 - keeps the agent in planner mode if the plan file changed after `submit_plan`; the revised plan must be resubmitted before `plan_exit`
 - can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime (because the plan_exit tool is only available with `EXPERIMENTAL_PLAN_MODE` enabled; se OpenCode docs for Experiments)
@@ -89,6 +91,30 @@ The tool returns:
 - the plugin base prompt
 - the injected planner reminder, which is plugin-controlled runtime guidance and is not customized via `agent.plan.prompt`
 - a short note explaining that the final runtime prompt can still differ because of user config, other plugins, or runtime tool availability like `plan_exit`
+
+## Diagnose planner configuration
+
+The plugin also adds a read-only `planner_config` tool. Use it when you want to inspect planner-specific configuration, especially editor selection precedence across `PLAN_VISUAL`, `VISUAL`, and `EDITOR`.
+
+In the TUI, `/planner-config` is the shortcut for this diagnostic flow.
+
+Example:
+
+```text
+/planner-config
+```
+
+The output includes:
+
+- the current session plan path
+- planner tool availability from the plugin's perspective
+- whether `submit_plan` is available for Plannotator review and `edit_plan` is available as the local-editor fallback
+- editor precedence: `PLAN_VISUAL` -> `VISUAL` -> `EDITOR`
+- which editor variable won
+- the resolved editor command
+- relevant runtime flags that affect planner behavior, such as `OPENCODE_EXPERIMENTAL_PLAN_MODE` and `OPENCODE_CLIENT`
+
+This is the quickest way to understand why `edit_plan` is using a specific editor command before you try `/edit-plan`.
 
 ## Review Without Plannotator
 
@@ -161,7 +187,7 @@ npm run debug:plan
 npm run opencode:no-plannotator -- debug config
 ```
 
-`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `plan_prompt`, `edit_plan`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
+`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `planner_config`, `plan_prompt`, `edit_plan`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
 
 This is the fastest way to distinguish:
 
@@ -181,7 +207,7 @@ It starts OpenCode with an isolated temporary home/config, keeps the local repo 
 1. Update `CHANGELOG.md`.
 2. Bump the version in `package.json`.
 3. Commit the release.
-4. Create and push a git tag like `v0.3.0` for the release.
+4. Create and push a git tag like `v0.3.1` for the release.
 5. Let GitHub Actions publish to npm `latest`.
 6. Publish matching GitHub release notes.
 
@@ -198,7 +224,7 @@ Configure npm Trusted Publishing for this package:
    - Repository: `opencode-planner`
    - Workflow filename: `release.yml`
 
-The release workflow publishes stable tags like `v0.3.0` to npm `latest` and creates matching GitHub release notes automatically.
+The release workflow publishes stable tags like `v0.3.1` to npm `latest` and creates matching GitHub release notes automatically.
 
 Trusted Publishing uses GitHub OIDC and does not require an `NPM_TOKEN` secret for publishing.
 
