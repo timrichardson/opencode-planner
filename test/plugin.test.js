@@ -2,7 +2,11 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { mkdir, rm, writeFile } from "node:fs/promises"
 
-import plannerPlugin from "../index.js"
+import plannerPlugin, { plugin } from "../index.js"
+
+test("package exports the plugin as both named and default exports", async () => {
+  assert.equal(plugin, plannerPlugin)
+})
 
 async function withEnv(env, fn) {
   const previous = {

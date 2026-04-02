@@ -400,7 +400,7 @@ function mode(input = {}) {
   }
 }
 
-export default async function plannerPlugin() {
+export const plugin = async function plannerPlugin() {
   const seen = new Set()
   const submittedPlans = new Map()
 
@@ -477,3 +477,5 @@ export default async function plannerPlugin() {
     },
   }
 }
+
+export default plugin

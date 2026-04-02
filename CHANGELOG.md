@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- export the plugin through a named `plugin` entrypoint as well as the default export so npm-based OpenCode loading can register it correctly
+
 ## 0.3.1
 
 - add a `planner_config` diagnostic tool and `/planner-config` command for inspecting planner runtime and editor configuration
