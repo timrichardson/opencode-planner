@@ -44,7 +44,7 @@ Add this to `opencode.jsonc` (or `opencode.json`):
 
 ```json
 {
-  "plugin": ["opencode-planner"]
+  "plugin": ["opencode-planner@latest"]
 }
 ```
 
