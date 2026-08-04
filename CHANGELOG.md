@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.3
 
 - resolve `edit_plan` and `planner_config` plan paths against the active OpenCode worktree instead of the plugin process working directory
 
