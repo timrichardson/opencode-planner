@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- resolve `edit_plan` and `planner_config` plan paths against the active OpenCode worktree instead of the plugin process working directory
+
 ## 0.3.2
 
 - export the plugin through a named `plugin` entrypoint as well as the default export so npm-based OpenCode loading can register it correctly

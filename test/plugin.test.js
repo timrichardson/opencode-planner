@@ -1,6 +1,8 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { mkdir, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import path from "node:path"
 
 import plannerPlugin, { plugin } from "../index.js"
 
@@ -328,6 +330,40 @@ test("edit_plan reports when the editor closes without changes", async () => {
           assert.match(output, /# Edited plan/)
         },
       )
+    },
+  )
+})
+
+test("edit_plan resolves the plan from the active worktree", async () => {
+  await withEnv(
+    {
+      PLAN_VISUAL: "true",
+      VISUAL: undefined,
+      EDITOR: undefined,
+    },
+    async () => {
+      const worktree = await mkdtemp(path.join(tmpdir(), "opencode-planner-worktree-"))
+      const target = path.join(worktree, ".opencode/plans/ses_worktree.md")
+
+      try {
+        await mkdir(path.dirname(target), { recursive: true })
+        await writeFile(target, "# Worktree plan\n")
+
+        const plugin = await plannerPlugin()
+        const output = await plugin.tool.edit_plan.execute(
+          {},
+          {
+            sessionID: "ses_worktree",
+            directory: worktree,
+            worktree,
+          },
+        )
+
+        assert.match(output, /# Worktree plan/)
+        assert.ok(output.includes(`File: ${target}`))
+      } finally {
+        await rm(worktree, { recursive: true, force: true })
+      }
     },
   )
 })

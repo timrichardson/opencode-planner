@@ -125,7 +125,7 @@ Example:
 
 The output includes:
 
-- the current session plan path
+- the current session plan path, resolved against the active OpenCode worktree
 - planner tool availability from the plugin's perspective
 - whether `submit_plan` is available for Plannotator review and `edit_plan` is available as the local-editor fallback
 - editor precedence: `PLAN_VISUAL` -> `VISUAL` -> `EDITOR`
@@ -158,6 +158,8 @@ If submit_plan is unavailable, call edit_plan so I can review the plan in my edi
 If you want to reopen the same plan after an initial review pass, prompt the `plan` agent with something like `edit the plan again externally`. That will cause it to call `edit_plan` again and reopen the current plan in the configured editor.
 
 When the editor closes, `edit_plan` compares the plan before and after editing. If nothing changed, it reports that no changes were made. If the user edited the plan, the tool returns the previous and updated plan content so the `plan` agent can treat that as review feedback, summarize the edits, and continue planning from the revised plan.
+
+Plan paths are resolved against the `worktree` supplied by OpenCode's tool context (falling back to its session `directory`). This keeps `/edit-plan` attached to the active worktree even when OpenCode itself was launched from another checkout.
 
 `edit_plan` uses `PLAN_VISUAL` first, then `VISUAL`, then `EDITOR`. `PLAN_VISUAL` is useful when you want planner review to use a different editor from the rest of your shell tools. The command must launch a separate process and block until editing is complete.
 

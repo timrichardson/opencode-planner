@@ -35,6 +35,12 @@ function file(id) {
   return path.posix.join(root, `${id}.md`)
 }
 
+function planTarget(id, context = {}) {
+  const target = file(id)
+  const base = context.worktree || context.directory
+  return base ? path.resolve(base, target) : target
+}
+
 function reviewInstruction(target) {
   return [
     `When the plan is complete, if the submit_plan tool is available, use it to submit the plan for review.`,
@@ -276,8 +282,8 @@ function runEditor(target) {
   })
 }
 
-async function editPlan(sessionID) {
-  const target = file(sessionID ?? "<session-id>")
+async function editPlan(sessionID, context) {
+  const target = planTarget(sessionID ?? "<session-id>", context)
   const before = await readIfExists(target)
   await runEditor(target)
 
@@ -314,8 +320,8 @@ async function editPlan(sessionID) {
   ].join("\n")
 }
 
-function plannerConfig(sessionID) {
-  const target = file(sessionID ?? "<session-id>")
+function plannerConfig(sessionID, context) {
+  const target = planTarget(sessionID ?? "<session-id>", context)
   const permission = mode().permission
   const editor = editorConfig()
   const planExitEnabled = hasPlanExit()
@@ -417,14 +423,14 @@ export const plugin = async function plannerPlugin() {
         description: "Open the current plan in the configured external editor",
         args: {},
         async execute(_, context) {
-          return editPlan(context.sessionID)
+          return editPlan(context.sessionID, context)
         },
       },
       planner_config: {
         description: "Show planner configuration details for the current session",
         args: {},
         async execute(_, context) {
-          return plannerConfig(context.sessionID)
+          return plannerConfig(context.sessionID, context)
         },
       },
     },
