@@ -44,16 +44,15 @@ The same npm package supports both OpenCode V1 and OpenCode V2. It keeps the V1 
 
 ### Support OpenCode V1 and V2 together
 
-To use the same configuration with both versions, add both fields to `opencode.jsonc` (or `opencode.json`):
+To use the same npm installation with both versions, use only the singular V1 field in `opencode.jsonc` (or `opencode.json`):
 
 ```json
 {
-  "plugin": ["opencode-planner@latest"],
-  "plugins": ["opencode-planner@latest"]
+  "plugin": ["opencode-planner@latest"]
 }
 ```
 
-This duplication is intentional. OpenCode V1 reads the singular `plugin` field and loads the package root (`index.js`); it ignores `plugins`. OpenCode V2 reads the plural `plugins` field and also migrates legacy `plugin` entries into its plugin list. Because both fields contain the same npm spec, V2 resolves `opencode-planner` through the native `./server` export instead of the V1 package root.
+OpenCode V1 reads `plugin` and loads the package root (`index.js`). OpenCode V2 migrates the legacy `plugin` entry into its plugin list, then resolves the same npm package through the native `./server` export. Do not add the plural `plugins` field to a shared V1/V2 configuration: OpenCode V1 rejects that unknown field instead of ignoring it.
 
 ### OpenCode V2 only
 
@@ -69,18 +68,17 @@ Then restart OpenCode.
 
 `opencode-planner` now publishes stable releases to `latest`, so the unqualified package name is the recommended install channel.
 
-If you want reproducible installs instead of automatic plugin refreshes, pin an exact version. While supporting both OpenCode versions, keep the version identical in both fields:
+If you want reproducible installs instead of automatic plugin refreshes, pin an exact version:
 
 ```json
 {
-  "plugin": ["opencode-planner@0.4.0"],
-  "plugins": ["opencode-planner@0.4.0"]
+  "plugin": ["opencode-planner@0.4.0"]
 }
 ```
 
 ### Local development
 
-Explicit file URLs do not use npm package subpath selection. Point OpenCode V1 directly at `index.js`:
+Explicit file URLs do not use npm package subpath selection, so one local-file entry cannot load the correct implementation in both versions. In a V1-specific development configuration, point directly at `index.js`:
 
 ```json
 {
@@ -88,7 +86,7 @@ Explicit file URLs do not use npm package subpath selection. Point OpenCode V1 d
 }
 ```
 
-Point OpenCode V2 directly at `server.js`:
+In a V2-specific development configuration, point directly at `server.js`:
 
 ```json
 {
@@ -96,11 +94,11 @@ Point OpenCode V2 directly at `server.js`:
 }
 ```
 
-Replace `/absolute/path/to/opencode-planner` with the path to your checkout.
+Replace `/absolute/path/to/opencode-planner` with the path to your checkout. Keep these local-file configurations separate; for one shared configuration, use the npm recipe above.
 
 ### Retire OpenCode V1 support
 
-When you no longer need OpenCode V1, delete the singular `plugin` field and leave the plural V2 `plugins` field unchanged:
+When you no longer need OpenCode V1, rename the singular `plugin` field to the plural V2 `plugins` field, preserving the package list:
 
 ```json
 {

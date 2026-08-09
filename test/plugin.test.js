@@ -1,6 +1,6 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 
@@ -8,6 +8,16 @@ import plannerPlugin, { plugin } from "../index.js"
 
 test("package exports the plugin as both named and default exports", async () => {
   assert.equal(plugin, plannerPlugin)
+})
+
+test("shared V1 and V2 install recipe remains valid V1 configuration", async () => {
+  const readme = await readFile(new URL("../README.md", import.meta.url), "utf8")
+  const section = readme.match(/### Support OpenCode V1 and V2 together[\s\S]*?```json\n([\s\S]*?)\n```/)
+
+  assert.ok(section)
+  assert.deepEqual(JSON.parse(section[1]), {
+    plugin: ["opencode-planner@latest"],
+  })
 })
 
 async function withEnv(env, fn) {

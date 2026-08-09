@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- correct the shared V1/V2 installation recipe to use only the V1-compatible `plugin` field
+
 ## 0.4.0
 
 - support OpenCode V1 and V2 from the same npm package by preserving the V1 root entrypoint and adding a native V2 `./server` entrypoint
