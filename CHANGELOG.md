@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- move installation and upgrade guidance near the top of the README and recommend explicit release versions because `@latest` does not update an existing installation
+
 ## 0.4.1
 
 - correct the shared V1/V2 installation recipe to use only the V1-compatible `plugin` field

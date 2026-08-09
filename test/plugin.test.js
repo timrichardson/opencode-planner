@@ -12,12 +12,22 @@ test("package exports the plugin as both named and default exports", async () =>
 
 test("shared V1 and V2 install recipe remains valid V1 configuration", async () => {
   const readme = await readFile(new URL("../README.md", import.meta.url), "utf8")
+  const packageInfo = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"))
+  const install = readme.match(/## Install \/ upgrade[\s\S]*?(?=\n## Overview)/)
   const section = readme.match(/### Support OpenCode V1 and V2 together[\s\S]*?```json\n([\s\S]*?)\n```/)
 
+  assert.ok(install)
   assert.ok(section)
   assert.deepEqual(JSON.parse(section[1]), {
-    plugin: ["opencode-planner@latest"],
+    plugin: [`${packageInfo.name}@${packageInfo.version}`],
   })
+
+  const examples = [...install[0].matchAll(/```(?:bash|json)\n([\s\S]*?)\n```/g)].map((match) => match[1])
+  assert.ok(examples.every((example) => !example.includes("@latest")))
+  assert.deepEqual(
+    [...new Set(examples.flatMap((example) => example.match(/opencode-planner@\d+\.\d+\.\d+/g) ?? []))],
+    [`${packageInfo.name}@${packageInfo.version}`],
+  )
 })
 
 async function withEnv(env, fn) {

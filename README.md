@@ -4,16 +4,86 @@
 * emulates Experimental Plan Mode
 * integrates external review and feedback editing of the plan via your choice of editor, or Plannotator
 
-It adds a dedicated `plan` agent for read-only planning before implementation. 
-Its functionality is an emulation of the experimental plan agent (it has no hard dependency on `EXPERIMENTAL_PLAN_MODE=1`, although that setting enables a tool called plan_exit which this plugin will use if available). That is, it likes to use sub-agents and a structured approach to planning, asks clarifying questions, and finally it produces a markdown file. 
+## Install / upgrade
 
-When Plannotator is installed, it can submit the finished plan for richer review. 
+The current release is `0.4.1`. The same npm package supports OpenCode V1 and OpenCode V2: V1 loads the package root, while V2 selects the native `./server` export.
 
-Without Plannotator, it can open the plan in your configured external editor for review. A new command `/edit-plan` will open the plan in the editor if needed. 
+### Support OpenCode V1 and V2 together
 
-In either case, changes made while editing will trigger a revision of the plan. 
+Install or upgrade the pinned release globally with OpenCode V1's plugin installer:
 
-You can easily tweak the prompt, in fact /plan_prompt gives you the plugin's prompt as a starting point for customisation. 
+```bash
+opencode plugin opencode-planner@0.4.1 --global --force
+```
+
+This writes the singular V1-compatible field to the global `opencode.json(c)`. You can configure the same entry manually:
+
+```json
+{
+  "plugin": ["opencode-planner@0.4.1"]
+}
+```
+
+OpenCode V1 reads `plugin` and loads `index.js`. OpenCode V2 migrates that legacy entry into its plugin list, then resolves the same npm package through `./server`. Do not add the plural `plugins` field to a shared V1/V2 configuration: OpenCode V1 rejects that unknown field instead of ignoring it.
+
+### OpenCode V2 only
+
+If you no longer use OpenCode V1, use only the plural V2 field:
+
+```json
+{
+  "plugins": ["opencode-planner@0.4.1"]
+}
+```
+
+### Upgrading
+
+Change the pinned version whenever a new release is published. Do not use `@latest` as an update strategy: OpenCode resolves it when the plugin is first installed, but an already-installed `@latest` entry does not automatically advance to newer releases.
+
+For a shared V1/V2 installation, rerun the installer with the new version and `--force`. For V2-only configuration, change the version in `plugins`. Restart OpenCode after installing or upgrading so the plugin is reloaded.
+
+### Local development
+
+Explicit file URLs do not use npm package subpath selection, so one local-file entry cannot load the correct implementation in both versions. In a V1-specific development configuration, point directly at `index.js`:
+
+```json
+{
+  "plugin": ["file:///absolute/path/to/opencode-planner/index.js"]
+}
+```
+
+In a V2-specific development configuration, point directly at `server.js`:
+
+```json
+{
+  "plugins": ["file:///absolute/path/to/opencode-planner/server.js"]
+}
+```
+
+Replace `/absolute/path/to/opencode-planner` with the path to your checkout. Keep these local-file configurations separate; for one shared configuration, use the pinned npm recipe above.
+
+### Retire OpenCode V1 support
+
+When you no longer need OpenCode V1, rename the singular `plugin` field to the plural V2 `plugins` field, preserving the package list:
+
+```json
+{
+  "plugins": ["opencode-planner@0.4.1"]
+}
+```
+
+## Overview
+
+It adds a dedicated `plan` agent for read-only planning before implementation.
+Its functionality is an emulation of the experimental plan agent (it has no hard dependency on `EXPERIMENTAL_PLAN_MODE=1`, although that setting enables a tool called plan_exit which this plugin will use if available). That is, it likes to use sub-agents and a structured approach to planning, asks clarifying questions, and finally it produces a markdown file.
+
+When Plannotator is installed, it can submit the finished plan for richer review.
+
+Without Plannotator, it can open the plan in your configured external editor for review. A new command `/edit-plan` will open the plan in the editor if needed.
+
+In either case, changes made while editing will trigger a revision of the plan.
+
+You can easily tweak the prompt, in fact /plan_prompt gives you the plugin's prompt as a starting point for customisation.
 
 
 After review, the agent can hand back to implementation mode by calling `plan_exit` only when the host runtime exposes that tool. In OpenCode V1, that means experimental plan mode must be enabled and the client must be `cli`. OpenCode V2 detects actual tool availability while assembling the model context. If the tool is unavailable, prompt the build agent to start work.
@@ -37,74 +107,6 @@ Repository: <https://github.com/timrichardson/opencode-planner>
 ### Rationale
 Experimental plan mode is not a focus for the core devs, who point out that a plugin can do it, which I set out to prove, at least as a concept. This plugin means, at least for me, a development path for a stronger Plan agent independent of core OpenCode priorities.
 
-
-## Install for OpenCode
-
-The same npm package supports both OpenCode V1 and OpenCode V2. It keeps the V1 plugin at the package root and exposes the native V2 server plugin through the package's `./server` export, which OpenCode V2 selects automatically.
-
-### Support OpenCode V1 and V2 together
-
-To use the same npm installation with both versions, use only the singular V1 field in `opencode.jsonc` (or `opencode.json`):
-
-```json
-{
-  "plugin": ["opencode-planner@latest"]
-}
-```
-
-OpenCode V1 reads `plugin` and loads the package root (`index.js`). OpenCode V2 migrates the legacy `plugin` entry into its plugin list, then resolves the same npm package through the native `./server` export. Do not add the plural `plugins` field to a shared V1/V2 configuration: OpenCode V1 rejects that unknown field instead of ignoring it.
-
-### OpenCode V2 only
-
-If you no longer use OpenCode V1, use only the plural V2 field:
-
-```json
-{
-  "plugins": ["opencode-planner@latest"]
-}
-```
-
-Then restart OpenCode.
-
-`opencode-planner` now publishes stable releases to `latest`, so the unqualified package name is the recommended install channel.
-
-If you want reproducible installs instead of automatic plugin refreshes, pin an exact version:
-
-```json
-{
-  "plugin": ["opencode-planner@0.4.1"]
-}
-```
-
-### Local development
-
-Explicit file URLs do not use npm package subpath selection, so one local-file entry cannot load the correct implementation in both versions. In a V1-specific development configuration, point directly at `index.js`:
-
-```json
-{
-  "plugin": ["file:///absolute/path/to/opencode-planner/index.js"]
-}
-```
-
-In a V2-specific development configuration, point directly at `server.js`:
-
-```json
-{
-  "plugins": ["file:///absolute/path/to/opencode-planner/server.js"]
-}
-```
-
-Replace `/absolute/path/to/opencode-planner` with the path to your checkout. Keep these local-file configurations separate; for one shared configuration, use the npm recipe above.
-
-### Retire OpenCode V1 support
-
-When you no longer need OpenCode V1, rename the singular `plugin` field to the plural V2 `plugins` field, preserving the package list:
-
-```json
-{
-  "plugins": ["opencode-planner@latest"]
-}
-```
 
 ## What it does
 
@@ -249,15 +251,6 @@ Examples:
 If `edit_plan` fails, the `plan` agent should fall back to telling you the plan file path and asking for review in chat.
 
 If you edit the plan after calling `submit_plan`, the plugin treats that as a new draft. In that case the agent should stay in planner mode and call `submit_plan` again before `plan_exit`.
-
-## Auto-updates
-
-OpenCode installs and updates npm plugins automatically. `opencode-planner` tracks `@latest` by default, which is the recommended channel for most users.
-
-- `@latest`: pick up stable plugin versions on restart
-- exact version pin: stay fixed until the config is changed deliberately
-
-If OpenCode appears to keep an older cached plugin, clear the cache under `~/.cache/opencode/` and restart.
 
 ## Development
 
