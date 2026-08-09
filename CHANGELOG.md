@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - support OpenCode V1 and V2 from the same npm package by preserving the V1 root entrypoint and adding a native V2 `./server` entrypoint
 - port the plan agent, commands, custom tools, planner reminder, subagent restrictions, and reviewed-plan handoff guard to the V2 plugin API

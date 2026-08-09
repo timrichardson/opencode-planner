@@ -73,8 +73,8 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 
 ```json
 {
-  "plugin": ["opencode-planner@0.3.3"],
-  "plugins": ["opencode-planner@0.3.3"]
+  "plugin": ["opencode-planner@0.4.0"],
+  "plugins": ["opencode-planner@0.4.0"]
 }
 ```
 
