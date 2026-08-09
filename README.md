@@ -16,7 +16,7 @@ In either case, changes made while editing will trigger a revision of the plan.
 You can easily tweak the prompt, in fact /plan_prompt gives you the plugin's prompt as a starting point for customisation. 
 
 
-After review, the agent can hand back to implementation mode by calling `plan_exit` only when the host runtime exposes that tool. In current OpenCode builds, that means experimental plan mode must be enabled and the client must be `cli`. If it's not enabled, you need to prompt the build agent to start work.
+After review, the agent can hand back to implementation mode by calling `plan_exit` only when the host runtime exposes that tool. In OpenCode V1, that means experimental plan mode must be enabled and the client must be `cli`. OpenCode V2 detects actual tool availability while assembling the model context. If the tool is unavailable, prompt the build agent to start work.
 
 Repository: <https://github.com/timrichardson/opencode-planner>
 
@@ -40,11 +40,28 @@ Experimental plan mode is not a focus for the core devs, who point out that a pl
 
 ## Install for OpenCode
 
-Add this to `opencode.jsonc` (or `opencode.json`):
+The same npm package supports both OpenCode V1 and OpenCode V2. It keeps the V1 plugin at the package root and exposes the native V2 server plugin through the package's `./server` export, which OpenCode V2 selects automatically.
+
+### Support OpenCode V1 and V2 together
+
+To use the same configuration with both versions, add both fields to `opencode.jsonc` (or `opencode.json`):
 
 ```json
 {
-  "plugin": ["opencode-planner@latest"]
+  "plugin": ["opencode-planner@latest"],
+  "plugins": ["opencode-planner@latest"]
+}
+```
+
+This duplication is intentional. OpenCode V1 reads the singular `plugin` field and loads the package root (`index.js`); it ignores `plugins`. OpenCode V2 reads the plural `plugins` field and also migrates legacy `plugin` entries into its plugin list. Because both fields contain the same npm spec, V2 resolves `opencode-planner` through the native `./server` export instead of the V1 package root.
+
+### OpenCode V2 only
+
+If you no longer use OpenCode V1, use only the plural V2 field:
+
+```json
+{
+  "plugins": ["opencode-planner@latest"]
 }
 ```
 
@@ -52,11 +69,42 @@ Then restart OpenCode.
 
 `opencode-planner` now publishes stable releases to `latest`, so the unqualified package name is the recommended install channel.
 
-If you want reproducible installs instead of automatic plugin refreshes, pin an exact version:
+If you want reproducible installs instead of automatic plugin refreshes, pin an exact version. While supporting both OpenCode versions, keep the version identical in both fields:
 
 ```json
 {
-  "plugin": ["opencode-planner@0.3.2"]
+  "plugin": ["opencode-planner@0.3.3"],
+  "plugins": ["opencode-planner@0.3.3"]
+}
+```
+
+### Local development
+
+Explicit file URLs do not use npm package subpath selection. Point OpenCode V1 directly at `index.js`:
+
+```json
+{
+  "plugin": ["file:///absolute/path/to/opencode-planner/index.js"]
+}
+```
+
+Point OpenCode V2 directly at `server.js`:
+
+```json
+{
+  "plugins": ["file:///absolute/path/to/opencode-planner/server.js"]
+}
+```
+
+Replace `/absolute/path/to/opencode-planner` with the path to your checkout.
+
+### Retire OpenCode V1 support
+
+When you no longer need OpenCode V1, delete the singular `plugin` field and leave the plural V2 `plugins` field unchanged:
+
+```json
+{
+  "plugins": ["opencode-planner@latest"]
 }
 ```
 
@@ -65,8 +113,8 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - adds a `plan` agent intended for design and implementation planning
 - constrains that agent to read-only tools plus markdown plan editing
 - injects a system reminder that keeps the planning workflow explicit
-- lets users replace the plugin's base `plan` prompt with their own `agent.plan.prompt`
-- lets users override agent settings such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`
+- lets V1 users replace the plugin's base `plan` prompt with `agent.plan.prompt` and V2 users replace it with `agents.plan.system`
+- lets users override agent settings such as the selected model and provider-specific request options
 - denies `submit_plan`, `edit_plan`, and `plan_exit` to the built-in `general` and `explore` subagents so review and implementation handoff stay on the primary `plan` agent
 - exposes a `planner_config` tool so the `plan` agent can inspect planner-specific runtime and editor configuration
 - exposes a `plan_prompt` tool so the `plan` agent can reveal the plugin's prompt basis for customization
@@ -75,11 +123,11 @@ If you want reproducible installs instead of automatic plugin refreshes, pin an 
 - registers a `/planner-config` command that routes to the `plan` agent and asks it to call `planner_config`
 - uses `submit_plan` for review when available, otherwise falls back to external-editor review
 - keeps the agent in planner mode if the plan file changed after `submit_plan`; the revised plan must be resubmitted before `plan_exit`
-- can leave planner mode with `plan_exit` after approval when experimental plan mode is enabled in the CLI runtime (because the plan_exit tool is only available with `EXPERIMENTAL_PLAN_MODE` enabled; se OpenCode docs for Experiments)
+- can leave planner mode with `plan_exit` after approval when the active OpenCode runtime exposes that tool
 
 ## Customize the plan agent
 
-If you set `agent.plan.prompt`, the plugin replaces its built-in base planning prompt with your text. Other agent settings, such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`, are merged in normally.
+If you use OpenCode V1 and set `agent.plan.prompt`, the plugin replaces its built-in base planning prompt with your text. Other agent settings, such as `agent.plan.model` and provider-specific options like `agent.plan.reasoningEffort`, are merged in normally.
 
 ```json
 { 
@@ -93,7 +141,20 @@ If you set `agent.plan.prompt`, the plugin replaces its built-in base planning p
 }
 ```
 
-The runtime planner reminder still applies, so the agent stays in planner mode and continues to use the review handoff flow. That reminder is injected by the plugin at runtime and is not customized through `agent.plan.prompt`.
+For OpenCode V2, use the native `agents.plan.system` field:
+
+```json
+{
+  "agents": {
+    "plan": {
+      "model": "openai/gpt-5.4",
+      "system": "You are my planning agent. Focus on migration risk, rollout steps, and testing strategy."
+    }
+  }
+}
+```
+
+The runtime planner reminder still applies, so the agent stays in planner mode and continues to use the review handoff flow. That reminder is injected by the plugin at runtime and is not customized through the V1 `agent.plan.prompt` or V2 `agents.plan.system` field.
 
 ## Reveal the plugin prompt basis
 
@@ -208,7 +269,7 @@ npm run debug:plan
 npm run opencode:no-plannotator -- debug config
 ```
 
-`npm run debug:plan` checks the active OpenCode runtime and reports whether the local repo plugin is loaded, whether `planner_config`, `plan_prompt`, `edit_plan`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools.
+`npm run debug:plan` checks the active OpenCode V1 runtime and reports whether the local repo plugin is loaded, whether `planner_config`, `plan_prompt`, `edit_plan`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools. V2 loading can be verified with `opencode2 api get /api/plugin` after the project has initialized its plugin generation.
 
 This is the fastest way to distinguish:
 
