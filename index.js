@@ -5,8 +5,8 @@ import path from "path"
 import process from "node:process"
 
 const agent = "plan"
-const root = ".opencode/plans"
-const defaultPlanTarget = file("<session-id>")
+export const root = ".opencode/plans"
+export const defaultPlanTarget = file("<session-id>")
 const editPlanCommand = {
   description: "Reopen the current plan in your editor",
   agent,
@@ -25,7 +25,7 @@ function truthy(key) {
   return value === "true" || value === "1"
 }
 
-function hasPlanExit() {
+export function hasPlanExit() {
   const experimentalPlanMode = truthy("OPENCODE_EXPERIMENTAL") || truthy("OPENCODE_EXPERIMENTAL_PLAN_MODE")
   const client = process.env.OPENCODE_CLIENT ?? "cli"
   return experimentalPlanMode && client === "cli"
@@ -35,7 +35,7 @@ function file(id) {
   return path.posix.join(root, `${id}.md`)
 }
 
-function planTarget(id, context = {}) {
+export function planTarget(id, context = {}) {
   const target = file(id)
   const base = context.worktree || context.directory
   return base ? path.resolve(base, target) : target
@@ -49,9 +49,7 @@ function reviewInstruction(target) {
   ].join(" ")
 }
 
-function agentPrompt(target = defaultPlanTarget) {
-  const planExit = hasPlanExit()
-
+export function agentPrompt(target = defaultPlanTarget, planExit = hasPlanExit()) {
   return [
     "Use this agent when the user wants a design, implementation plan, or scoped investigation before coding.",
     "Stay in planning mode: inspect the codebase, ask targeted questions when needed, and write a concise execution plan before implementation.",
@@ -67,16 +65,16 @@ function agentPrompt(target = defaultPlanTarget) {
   ].join("\n\n")
 }
 
-function promptDisclosure(target = defaultPlanTarget) {
+export function promptDisclosure(target = defaultPlanTarget, planExit = hasPlanExit()) {
   return [
     "# opencode-planner prompt basis",
     "This tool shows the prompt text and planner reminder supplied by the opencode-planner plugin itself.",
     "The final runtime prompt can still differ if the user overrides `agent.plan.prompt`, another plugin edits `agent.plan`, or runtime tool availability changes.",
     "## Base prompt",
-    agentPrompt(defaultPlanTarget),
+    agentPrompt(defaultPlanTarget, planExit),
     "## Planner reminder",
     "This reminder is injected by the plugin at runtime to keep the `plan` agent in planner mode and enforce the review handoff workflow. It is plugin-controlled and is not customized through `agent.plan.prompt`.",
-    note(target.replace(`${root}/`, "").replace(/\.md$/, "")),
+    note(target.replace(`${root}/`, "").replace(/\.md$/, ""), planExit),
     "## How to customize it",
     "Only the Base prompt above is replaced by `agent.plan.prompt`. Add this to `opencode.jsonc` to replace that base prompt:",
     [
@@ -94,7 +92,7 @@ function promptDisclosure(target = defaultPlanTarget) {
   ].join("\n\n")
 }
 
-function note(id) {
+export function note(id, planExit = hasPlanExit()) {
   const out = [
     "<system-reminder>",
     "Planner mode is active.",
@@ -105,7 +103,7 @@ function note(id) {
     "</system-reminder>",
   ]
 
-  if (hasPlanExit()) {
+  if (planExit) {
     out.splice(
       out.length - 1,
       0,
@@ -155,7 +153,7 @@ function restrictPlannerSubagent(input = {}) {
   }
 }
 
-function editorConfig() {
+export function editorConfig() {
   const variables = ["PLAN_VISUAL", "VISUAL", "EDITOR"].map((key) => {
     const value = process.env[key]?.trim() ?? ""
     return {
@@ -178,7 +176,7 @@ function editorCommand() {
   return editorConfig().command
 }
 
-function formatSetting(value) {
+export function formatSetting(value) {
   return value ? `\`${value}\`` : "<unset>"
 }
 
@@ -202,8 +200,8 @@ function formatPlanBlock(title, content, fallback) {
   return [title, "````markdown", content && content.trim() ? content : fallback, "````"].join("\n")
 }
 
-async function snapshotSubmittedPlan(sessionID, args) {
-  const defaultTarget = file(sessionID)
+export async function snapshotSubmittedPlan(sessionID, args, context = {}) {
+  const defaultTarget = planTarget(sessionID, context)
   const currentFile = await readIfExists(defaultTarget)
   if (currentFile !== null) {
     return {
@@ -231,10 +229,10 @@ async function snapshotSubmittedPlan(sessionID, args) {
   }
 }
 
-async function planChangedSinceSubmit(sessionID, submitted) {
+export async function planChangedSinceSubmit(sessionID, submitted, context = {}) {
   if (!submitted) return false
 
-  const target = submitted.target ?? file(sessionID)
+  const target = submitted.target ?? planTarget(sessionID, context)
   const current = await readIfExists(target)
   if (current === null) {
     return submitted.target !== null
@@ -282,7 +280,7 @@ function runEditor(target) {
   })
 }
 
-async function editPlan(sessionID, context) {
+export async function editPlan(sessionID, context) {
   const target = planTarget(sessionID ?? "<session-id>", context)
   const before = await readIfExists(target)
   await runEditor(target)

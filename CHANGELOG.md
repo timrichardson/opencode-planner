@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- support OpenCode V1 and V2 from the same npm package by preserving the V1 root entrypoint and adding a native V2 `./server` entrypoint
+- port the plan agent, commands, custom tools, planner reminder, subagent restrictions, and reviewed-plan handoff guard to the V2 plugin API
+
 ## 0.3.3
 
 - resolve `edit_plan` and `planner_config` plan paths against the active OpenCode worktree instead of the plugin process working directory
