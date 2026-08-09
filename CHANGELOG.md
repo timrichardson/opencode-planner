@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
 - move installation and upgrade guidance near the top of the README and recommend explicit release versions because `@latest` does not update an existing installation
 
