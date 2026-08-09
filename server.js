@@ -126,14 +126,14 @@ async function setup(ctx) {
   })
 
   await ctx.session.hook("context", (event) => {
-    if (event.agent === "general" || event.agent === "explore") {
+    if (event.agent !== agent) {
       delete event.tools.edit_plan
       delete event.tools.planner_config
+      delete event.tools.plan_prompt
       delete event.tools.plan_exit
       delete event.tools.submit_plan
       return
     }
-    if (event.agent !== agent) return
     availableTools.set(event.sessionID, new Set(Object.keys(event.tools)))
     event.system.push({ type: "text", text: note(event.sessionID, Boolean(event.tools.plan_exit)) })
   })

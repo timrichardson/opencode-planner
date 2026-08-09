@@ -1,9 +1,12 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import path from "node:path"
 
 import plannerPlugin from "../server.js"
 
-function runtime() {
+function runtime(directory = "/tmp/planner-project") {
   const agents = new Map()
   const commands = new Map()
   const tools = []
@@ -51,7 +54,7 @@ function runtime() {
         },
       },
       session: {
-        get: async () => ({ location: { directory: "/tmp/planner-project" } }),
+        get: async () => ({ location: { directory } }),
         hook: async (name, callback) => {
           hooks.session[name] = callback
         },
@@ -128,26 +131,72 @@ test("injects the planner reminder using actual V2 tool availability", async () 
   assert.match(prompt.content, /call plan_exit/)
 })
 
-test("removes planner review tools from V2 subagents", async () => {
+test("requires renewed V2 review before transitioning after plan changes", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "opencode-planner-v2-"))
+  const target = path.join(directory, ".opencode/plans/ses_transition.md")
+
+  try {
+    await mkdir(path.dirname(target), { recursive: true })
+    await writeFile(target, "# Submitted plan\n\n- step one\n")
+
+    const host = runtime(directory)
+    await plannerPlugin.setup(host.context)
+    const submit = () => host.hooks.tool["execute.after"]({
+      tool: "submit_plan",
+      sessionID: "ses_transition",
+      agent: "plan",
+      messageID: "msg_transition",
+      id: "call_submit",
+      status: "completed",
+      input: { plan: "/tmp/ignored.md" },
+      result: { content: "approved" },
+    })
+    const exit = () => host.hooks.tool["execute.before"]({
+      tool: "plan_exit",
+      sessionID: "ses_transition",
+      agent: "plan",
+      messageID: "msg_transition",
+      id: "call_exit",
+      input: {},
+    })
+
+    await submit()
+    await assert.doesNotReject(exit())
+
+    await writeFile(target, "# Revised plan\n\n- safer transition\n")
+    await assert.rejects(exit(), /changed since the last submit_plan review/i)
+
+    await submit()
+    await assert.doesNotReject(exit())
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test("removes planner tools and reminders after transitioning out of the V2 plan agent", async () => {
   const host = runtime()
   await plannerPlugin.setup(host.context)
-  const event = {
-    sessionID: "ses_subagent",
-    agent: "general",
-    system: [],
-    tools: {
-      edit_plan: {},
-      planner_config: {},
-      plan_exit: {},
-      submit_plan: {},
-      read: {},
-    },
+
+  for (const agent of ["build", "general", "explore"]) {
+    const event = {
+      sessionID: "ses_transition",
+      agent,
+      system: [],
+      tools: {
+        edit_plan: {},
+        planner_config: {},
+        plan_prompt: {},
+        plan_exit: {},
+        submit_plan: {},
+        read: {},
+      },
+    }
+
+    await host.hooks.session.context(event)
+
+    assert.deepEqual(event.tools, { read: {} })
+    assert.deepEqual(event.system, [])
   }
-
-  await host.hooks.session.context(event)
-
-  assert.deepEqual(event.tools, { read: {} })
-  assert.deepEqual(event.system, [])
 })
 
 test("V2 tools return the structural tool result shape", async () => {

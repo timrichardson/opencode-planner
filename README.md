@@ -115,7 +115,7 @@ When you no longer need OpenCode V1, delete the singular `plugin` field and leav
 - injects a system reminder that keeps the planning workflow explicit
 - lets V1 users replace the plugin's base `plan` prompt with `agent.plan.prompt` and V2 users replace it with `agents.plan.system`
 - lets users override agent settings such as the selected model and provider-specific request options
-- denies `submit_plan`, `edit_plan`, and `plan_exit` to the built-in `general` and `explore` subagents so review and implementation handoff stay on the primary `plan` agent
+- denies planner handoff tools to the built-in V1 `general` and `explore` subagents, while V2 removes planner-only tools from every non-`plan` context so they do not follow the session into implementation mode
 - exposes a `planner_config` tool so the `plan` agent can inspect planner-specific runtime and editor configuration
 - exposes a `plan_prompt` tool so the `plan` agent can reveal the plugin's prompt basis for customization
 - exposes an `edit_plan` tool so the `plan` agent can open the current plan in the configured external editor
