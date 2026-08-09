@@ -65,6 +65,7 @@ function runtime(directory = "/tmp/planner-project") {
 
 test("exports a V2 server plugin definition", () => {
   assert.equal(plannerPlugin.id, "opencode-planner")
+  assert.equal(typeof plannerPlugin.server, "function")
   assert.equal(typeof plannerPlugin.setup, "function")
 })
 

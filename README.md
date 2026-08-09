@@ -6,7 +6,7 @@
 
 ## Install / upgrade
 
-The current release is `0.5.0`. The same npm package supports OpenCode V1 and OpenCode V2: V1 loads the package root, while V2 selects the native `./server` export.
+The current release is `0.5.0`. The same npm package supports OpenCode V1 and OpenCode V2 through a dual-host `./server` export.
 
 ### Support OpenCode V1 and V2 together
 
@@ -24,7 +24,7 @@ This writes the singular V1-compatible field to the global `opencode.json(c)`. Y
 }
 ```
 
-OpenCode V1 reads `plugin` and loads `index.js`. OpenCode V2 migrates that legacy entry into its plugin list, then resolves the same npm package through `./server`. Do not add the plural `plugins` field to a shared V1/V2 configuration: OpenCode V1 rejects that unknown field instead of ignoring it.
+OpenCode V1 reads `plugin`, resolves `./server`, and calls its legacy `server()` adapter. OpenCode V2 migrates the same entry into its plugin list, resolves `./server`, and calls the native `setup()` method. The package root remains a fallback for older V1 resolution behavior. Do not add the plural `plugins` field to a shared V1/V2 configuration: OpenCode V1 rejects that unknown field instead of ignoring it.
 
 ### OpenCode V2 only
 
@@ -44,15 +44,15 @@ For a shared V1/V2 installation, rerun the installer with the new version and `-
 
 ### Local development
 
-Explicit file URLs do not use npm package subpath selection, so one local-file entry cannot load the correct implementation in both versions. In a V1-specific development configuration, point directly at `index.js`:
+Explicit file URLs do not perform npm subpath selection. Point a shared V1/V2 development configuration directly at the dual-host `server.js` entrypoint:
 
 ```json
 {
-  "plugin": ["file:///absolute/path/to/opencode-planner/index.js"]
+  "plugin": ["file:///absolute/path/to/opencode-planner/server.js"]
 }
 ```
 
-In a V2-specific development configuration, point directly at `server.js`:
+For V2-only local development, use the same file with the native plural field:
 
 ```json
 {
@@ -60,7 +60,7 @@ In a V2-specific development configuration, point directly at `server.js`:
 }
 ```
 
-Replace `/absolute/path/to/opencode-planner` with the path to your checkout. Keep these local-file configurations separate; for one shared configuration, use the pinned npm recipe above.
+Replace `/absolute/path/to/opencode-planner` with the path to your checkout.
 
 ### Retire OpenCode V1 support
 
@@ -256,9 +256,12 @@ If you edit the plan after calling `submit_plan`, the plugin treats that as a ne
 
 ```bash
 npm test
+npm run test:integration:v1
 npm run debug:plan
 npm run opencode:no-plannotator -- debug config
 ```
+
+`npm run test:integration:v1` launches the installed OpenCode V1 binary with an isolated temporary home and the local package, then verifies that `/edit-plan`, `/planner-config`, `edit_plan`, `planner_config`, and `plan_prompt` are registered. Set `OPENCODE_PLANNER_OPENCODE_BIN` to test a specific V1 binary.
 
 `npm run debug:plan` checks the active OpenCode V1 runtime and reports whether the local repo plugin is loaded, whether `planner_config`, `plan_prompt`, `edit_plan`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools. V2 loading can be verified with `opencode2 api get /api/plugin` after the project has initialized its plugin generation.
 

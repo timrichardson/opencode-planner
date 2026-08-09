@@ -404,7 +404,7 @@ function mode(input = {}) {
   }
 }
 
-export const plugin = async function plannerPlugin() {
+export const server = async function plannerPlugin() {
   const seen = new Set()
   const submittedPlans = new Map()
 
@@ -482,4 +482,9 @@ export const plugin = async function plannerPlugin() {
   }
 }
 
-export default plugin
+export const plugin = server
+
+export default {
+  id: "opencode-planner",
+  server,
+}

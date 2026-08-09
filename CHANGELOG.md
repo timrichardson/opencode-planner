@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- restore OpenCode V1 loading by adding its required `server()` adapter to the dual-host `./server` export while preserving native V2 `setup()`
+
 ## 0.5.0
 
 - move installation and upgrade guidance near the top of the README and recommend explicit release versions because `@latest` does not update an existing installation

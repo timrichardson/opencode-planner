@@ -4,9 +4,13 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 
-import plannerPlugin, { plugin } from "../index.js"
+import packagePlugin, { plugin } from "../index.js"
 
-test("package exports the plugin as both named and default exports", async () => {
+const plannerPlugin = packagePlugin.server
+
+test("package exports the V1 host adapter and named plugin factory", async () => {
+  assert.equal(packagePlugin.id, "opencode-planner")
+  assert.equal(typeof packagePlugin.server, "function")
   assert.equal(plugin, plannerPlugin)
 })
 

@@ -8,6 +8,7 @@ import {
   planChangedSinceSubmit,
   planTarget,
   promptDisclosure,
+  server,
   snapshotSubmittedPlan,
 } from "./index.js"
 
@@ -190,5 +191,5 @@ async function plannerConfig(ctx, sessionID, tools) {
   ].join("\n")
 }
 
-export const plugin = { id, setup }
+export const plugin = { id, server, setup }
 export default plugin
