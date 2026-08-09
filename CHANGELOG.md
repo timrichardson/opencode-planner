@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.1
 
 - restore OpenCode V1 loading by adding its required `server()` adapter to the dual-host `./server` export while preserving native V2 `setup()`
 

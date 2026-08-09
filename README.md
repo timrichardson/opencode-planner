@@ -6,21 +6,21 @@
 
 ## Install / upgrade
 
-The current release is `0.5.0`. The same npm package supports OpenCode V1 and OpenCode V2 through a dual-host `./server` export.
+The current release is `0.5.1`. The same npm package supports OpenCode V1 and OpenCode V2 through a dual-host `./server` export.
 
 ### Support OpenCode V1 and V2 together
 
 Install or upgrade the pinned release globally with OpenCode V1's plugin installer:
 
 ```bash
-opencode plugin opencode-planner@0.5.0 --global --force
+opencode plugin opencode-planner@0.5.1 --global --force
 ```
 
 This writes the singular V1-compatible field to the global `opencode.json(c)`. You can configure the same entry manually:
 
 ```json
 {
-  "plugin": ["opencode-planner@0.5.0"]
+  "plugin": ["opencode-planner@0.5.1"]
 }
 ```
 
@@ -32,7 +32,7 @@ If you no longer use OpenCode V1, use only the plural V2 field:
 
 ```json
 {
-  "plugins": ["opencode-planner@0.5.0"]
+  "plugins": ["opencode-planner@0.5.1"]
 }
 ```
 
@@ -68,7 +68,7 @@ When you no longer need OpenCode V1, rename the singular `plugin` field to the p
 
 ```json
 {
-  "plugins": ["opencode-planner@0.5.0"]
+  "plugins": ["opencode-planner@0.5.1"]
 }
 ```
 
