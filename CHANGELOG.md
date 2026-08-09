@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1
 
 - correct the shared V1/V2 installation recipe to use only the V1-compatible `plugin` field
 
