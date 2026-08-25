@@ -1,6 +1,6 @@
 {
   "name": "opencode-planner",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "OpenCode plugin emulating Experimental Planning Mode and sending plan to configured editor for acceptance or editing",
   "type": "module",
   "main": "./index.js",

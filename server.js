@@ -84,12 +84,29 @@ async function setup(ctx) {
     }
   })
 
+  const configuredCommands = (await ctx.command.list()).data
   await ctx.command.transform((commands) => {
-    if (!commands.get("edit-plan")) {
-      commands.update("edit-plan", (command) => Object.assign(command, editPlanCommand))
-    }
-    if (!commands.get("planner-config")) {
-      commands.update("planner-config", (command) => Object.assign(command, plannerConfigCommand))
+    for (const [name, command] of Object.entries({
+      "edit-plan": editPlanCommand,
+      "planner-config": plannerConfigCommand,
+    })) {
+      if (configuredCommands.some((item) => item.name === name)) continue
+      commands.add({
+        name,
+        description: command.description,
+        async execute(input) {
+          const session = await ctx.session.get({ sessionID: input.sessionID })
+          if (session.agent !== command.agent) {
+            await ctx.session.switchAgent({ sessionID: input.sessionID, agent: command.agent })
+          }
+          await ctx.session.prompt({
+            ...input.prompt,
+            sessionID: input.sessionID,
+            text: [command.template, input.prompt.text.trim()].filter(Boolean).join("\n\n"),
+            delivery: input.delivery,
+          })
+        },
+      })
     }
   })
 

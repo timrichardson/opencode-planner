@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2 - 2026-08-25
+
+- update V2 command registration for the current `CommandDraft.add()` API so plugin reload no longer interrupts model catalog initialization
+- verify compatibility with OpenCode V1 `1.18.22` and OpenCode V2 `v0.0.0-beta-18155`
+
 ## 0.5.1
 
 - restore OpenCode V1 loading by adding its required `server()` adapter to the dual-host `./server` export while preserving native V2 `setup()`

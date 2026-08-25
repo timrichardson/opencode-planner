@@ -11,6 +11,8 @@ function runtime(directory = "/tmp/planner-project") {
   const commands = new Map()
   const tools = []
   const hooks = { session: {}, tool: {} }
+  const prompts = []
+  let sessionAgent = "build"
   const defaults = (id) => ({
     id,
     name: id,
@@ -25,6 +27,7 @@ function runtime(directory = "/tmp/planner-project") {
     commands,
     tools,
     hooks,
+    prompts,
     context: {
       app: { name: "OpenCode", version: "test", channel: "dev" },
       agent: {
@@ -38,13 +41,9 @@ function runtime(directory = "/tmp/planner-project") {
         }),
       },
       command: {
+        list: async () => ({ data: [...commands.values()] }),
         transform: async (callback) => callback({
-          get: (name) => commands.get(name),
-          update: (name, update) => {
-            const current = commands.get(name) ?? { name, template: "" }
-            commands.set(name, current)
-            update(current)
-          },
+          add: (command) => commands.set(command.name, command),
         }),
       },
       tool: {
@@ -54,7 +53,13 @@ function runtime(directory = "/tmp/planner-project") {
         },
       },
       session: {
-        get: async () => ({ location: { directory } }),
+        get: async () => ({ agent: sessionAgent, location: { directory } }),
+        switchAgent: async (input) => {
+          sessionAgent = input.agent
+        },
+        prompt: async (input) => {
+          prompts.push(input)
+        },
         hook: async (name, callback) => {
           hooks.session[name] = callback
         },
@@ -79,8 +84,9 @@ test("registers the V2 plan agent, commands, tools, and hooks", async () => {
     host.tools.map((tool) => tool.name),
     ["plan_prompt", "edit_plan", "planner_config"],
   )
-  assert.equal(host.commands.get("edit-plan").agent, "plan")
-  assert.equal(host.commands.get("planner-config").agent, "plan")
+  assert.equal(host.commands.get("edit-plan").description, "Reopen the current plan in your editor")
+  assert.equal(typeof host.commands.get("edit-plan").execute, "function")
+  assert.equal(host.commands.get("planner-config").description, "Show planner configuration details")
   assert.equal(typeof host.hooks.session.context, "function")
   assert.equal(typeof host.hooks.tool["execute.before"], "function")
   assert.equal(typeof host.hooks.tool["execute.after"], "function")
@@ -103,13 +109,31 @@ test("preserves configured V2 prompts and commands", async () => {
     hidden: false,
     permissions: [],
   })
-  host.commands.set("edit-plan", { name: "edit-plan", template: "Custom command", agent: "build" })
+  const custom = async () => {}
+  host.commands.set("edit-plan", { name: "edit-plan", description: "Custom command", execute: custom })
 
   await plannerPlugin.setup(host.context)
 
   assert.equal(host.agents.get("plan").system, "Custom planner prompt")
-  assert.equal(host.commands.get("edit-plan").template, "Custom command")
-  assert.equal(host.commands.get("edit-plan").agent, "build")
+  assert.equal(host.commands.get("edit-plan").description, "Custom command")
+  assert.equal(host.commands.get("edit-plan").execute, custom)
+})
+
+test("V2 commands switch to the plan agent and submit their prompt", async () => {
+  const host = runtime()
+  await plannerPlugin.setup(host.context)
+
+  await host.commands.get("edit-plan").execute({
+    sessionID: "ses_command",
+    prompt: { text: "Please reopen it" },
+    delivery: "steer",
+  })
+
+  assert.equal(host.prompts.length, 1)
+  assert.equal(host.prompts[0].sessionID, "ses_command")
+  assert.equal(host.prompts[0].delivery, "steer")
+  assert.match(host.prompts[0].text, /calling the edit_plan tool/i)
+  assert.match(host.prompts[0].text, /Please reopen it/)
 })
 
 test("injects the planner reminder using actual V2 tool availability", async () => {
