@@ -125,7 +125,7 @@ test("V2 commands switch to the plan agent and submit their prompt", async () =>
 
   await host.commands.get("edit-plan").execute({
     sessionID: "ses_command",
-    prompt: { text: "Please reopen it" },
+    prompt: { text: "Please reopen it", files: undefined, agents: undefined, skills: undefined },
     delivery: "steer",
   })
 
@@ -134,6 +134,24 @@ test("V2 commands switch to the plan agent and submit their prompt", async () =>
   assert.equal(host.prompts[0].delivery, "steer")
   assert.match(host.prompts[0].text, /calling the edit_plan tool/i)
   assert.match(host.prompts[0].text, /Please reopen it/)
+  assert.equal(Object.hasOwn(host.prompts[0], "files"), false)
+  assert.equal(Object.hasOwn(host.prompts[0], "agents"), false)
+  assert.equal(Object.hasOwn(host.prompts[0], "skills"), false)
+
+  const attachments = {
+    files: [{ uri: "file:///tmp/plan.md" }],
+    agents: [{ name: "explore" }],
+    skills: [{ id: "review" }],
+  }
+  await host.commands.get("planner-config").execute({
+    sessionID: "ses_command",
+    prompt: { text: "", ...attachments },
+    delivery: "queue",
+  })
+
+  assert.deepEqual(host.prompts[1].files, attachments.files)
+  assert.deepEqual(host.prompts[1].agents, attachments.agents)
+  assert.deepEqual(host.prompts[1].skills, attachments.skills)
 })
 
 test("injects the planner reminder using actual V2 tool availability", async () => {

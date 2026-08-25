@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 - 2026-08-25
+
+- omit absent V2 command prompt attachments instead of forwarding explicit `undefined` values that the plugin API rejects
+- add an isolated OpenCode V2 integration test covering plan creation and external editing
+
 ## 0.5.2 - 2026-08-25
 
 - update V2 command registration for the current `CommandDraft.add()` API so plugin reload no longer interrupts model catalog initialization

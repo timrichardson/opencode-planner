@@ -100,9 +100,11 @@ async function setup(ctx) {
             await ctx.session.switchAgent({ sessionID: input.sessionID, agent: command.agent })
           }
           await ctx.session.prompt({
-            ...input.prompt,
             sessionID: input.sessionID,
             text: [command.template, input.prompt.text.trim()].filter(Boolean).join("\n\n"),
+            ...(input.prompt.files === undefined ? {} : { files: input.prompt.files }),
+            ...(input.prompt.agents === undefined ? {} : { agents: input.prompt.agents }),
+            ...(input.prompt.skills === undefined ? {} : { skills: input.prompt.skills }),
             delivery: input.delivery,
           })
         },

@@ -6,7 +6,7 @@
 
 ## Install / upgrade
 
-The current release is `0.5.2`. The same npm package supports OpenCode V1 and OpenCode V2 through a dual-host `./server` export.
+The current release is `0.5.3`. The same npm package supports OpenCode V1 and OpenCode V2 through a dual-host `./server` export.
 
 Compatibility was verified on August 25, 2026 with OpenCode V1 `1.18.22` and OpenCode V2 `v0.0.0-beta-18155`.
 
@@ -15,14 +15,14 @@ Compatibility was verified on August 25, 2026 with OpenCode V1 `1.18.22` and Ope
 Install or upgrade the pinned release globally with OpenCode V1's plugin installer:
 
 ```bash
-opencode plugin opencode-planner@0.5.2 --global --force
+opencode plugin opencode-planner@0.5.3 --global --force
 ```
 
 This writes the singular V1-compatible field to the global `opencode.json(c)`. You can configure the same entry manually:
 
 ```json
 {
-  "plugin": ["opencode-planner@0.5.2"]
+  "plugin": ["opencode-planner@0.5.3"]
 }
 ```
 
@@ -34,7 +34,7 @@ If you no longer use OpenCode V1, use only the plural V2 field:
 
 ```json
 {
-  "plugins": ["opencode-planner@0.5.2"]
+  "plugins": ["opencode-planner@0.5.3"]
 }
 ```
 
@@ -70,7 +70,7 @@ When you no longer need OpenCode V1, rename the singular `plugin` field to the p
 
 ```json
 {
-  "plugins": ["opencode-planner@0.5.2"]
+  "plugins": ["opencode-planner@0.5.3"]
 }
 ```
 
@@ -259,11 +259,14 @@ If you edit the plan after calling `submit_plan`, the plugin treats that as a ne
 ```bash
 npm test
 npm run test:integration:v1
+npm run test:integration:v2
 npm run debug:plan
 npm run opencode:no-plannotator -- debug config
 ```
 
 `npm run test:integration:v1` launches the installed OpenCode V1 binary with an isolated temporary home and the local package, then verifies that `/edit-plan`, `/planner-config`, `edit_plan`, `planner_config`, and `plan_prompt` are registered. Set `OPENCODE_PLANNER_OPENCODE_BIN` to test a specific V1 binary.
+
+`npm run test:integration:v2` launches the installed OpenCode V2 server with an isolated temporary home and the local package. A deterministic test command creates a session plan, runs the real `editPlan` implementation through a scripted editor, and verifies the revised file plus the previous/updated plan output. Set `OPENCODE_PLANNER_OPENCODE2_BIN` to test a specific V2 binary.
 
 `npm run debug:plan` checks the active OpenCode V1 runtime and reports whether the local repo plugin is loaded, whether `planner_config`, `plan_prompt`, `edit_plan`, `submit_plan`, and `plan_exit` are allowed by the `plan` agent, and whether they are actually registered as runtime tools. V2 loading can be verified with `opencode2 api get /api/plugin` after the project has initialized its plugin generation.
 
