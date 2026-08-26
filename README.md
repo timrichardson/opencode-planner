@@ -6,7 +6,7 @@
 
 ## Install / upgrade
 
-The current release is `0.5.3`. The same npm package supports OpenCode V1 and OpenCode V2 through a dual-host `./server` export.
+The current release is `0.6.0`. The same npm package supports OpenCode V1 and OpenCode V2 through a dual-host `./server` export.
 
 Compatibility was verified on August 25, 2026 with OpenCode V1 `1.18.22` and OpenCode V2 `v0.0.0-beta-18155`.
 
@@ -15,14 +15,14 @@ Compatibility was verified on August 25, 2026 with OpenCode V1 `1.18.22` and Ope
 Install or upgrade the pinned release globally with OpenCode V1's plugin installer:
 
 ```bash
-opencode plugin opencode-planner@0.5.3 --global --force
+opencode plugin opencode-planner@0.6.0 --global --force
 ```
 
 This writes the singular V1-compatible field to the global `opencode.json(c)`. You can configure the same entry manually:
 
 ```json
 {
-  "plugin": ["opencode-planner@0.5.3"]
+  "plugin": ["opencode-planner@0.6.0"]
 }
 ```
 
@@ -30,11 +30,17 @@ OpenCode V1 reads `plugin`, resolves `./server`, and calls its legacy `server()`
 
 ### OpenCode V2 only
 
-If you no longer use OpenCode V1, use only the plural V2 field:
+If you no longer use OpenCode V1, install the pinned release with OpenCode V2's plugin installer:
+
+```bash
+opencode2 plugin add opencode-planner@0.6.0
+```
+
+This writes the plural V2 field to the global `opencode.json(c)`. You can configure the same entry manually:
 
 ```json
 {
-  "plugins": ["opencode-planner@0.5.3"]
+  "plugins": ["opencode-planner@0.6.0"]
 }
 ```
 
@@ -42,7 +48,14 @@ If you no longer use OpenCode V1, use only the plural V2 field:
 
 Change the pinned version whenever a new release is published. Do not use `@latest` as an update strategy: OpenCode resolves it when the plugin is first installed, but an already-installed `@latest` entry does not automatically advance to newer releases.
 
-For a shared V1/V2 installation, rerun the installer with the new version and `--force`. For V2-only configuration, change the version in `plugins`. Restart OpenCode after installing or upgrading so the plugin is reloaded.
+For a shared V1/V2 installation, rerun the V1 installer with the new version and `--force`. For a V2-only installation, remove the previous pinned spec and add the new one:
+
+```bash
+opencode2 plugin remove opencode-planner@PREVIOUS_VERSION
+opencode2 plugin add opencode-planner@0.6.0
+```
+
+Restart OpenCode after installing or upgrading so the plugin is reloaded.
 
 ### Local development
 
@@ -70,7 +83,7 @@ When you no longer need OpenCode V1, rename the singular `plugin` field to the p
 
 ```json
 {
-  "plugins": ["opencode-planner@0.5.3"]
+  "plugins": ["opencode-planner@0.6.0"]
 }
 ```
 

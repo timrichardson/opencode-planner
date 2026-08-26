@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0 - 2026-08-26
+
+- document `opencode2 plugin add` as the recommended V2-only installation method
+- document pinned V2 upgrades with `opencode2 plugin remove` followed by `opencode2 plugin add`
+
 ## 0.5.3 - 2026-08-25
 
 - omit absent V2 command prompt attachments instead of forwarding explicit `undefined` values that the plugin API rejects
